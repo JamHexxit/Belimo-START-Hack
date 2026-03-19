@@ -122,13 +122,21 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {devices.slice(0, 5).map(d => (
-                <div key={d.deviceId} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 12px',
-                  background: 'var(--bg-primary)',
-                }}>
+                <div 
+                  key={d.deviceId}
+                  onClick={() => {
+                    window.location.hash = `#search-${encodeURIComponent(d.deviceId)}`;
+                    onNavigate('devices');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    background: 'var(--bg-primary)',
+                    cursor: 'pointer',
+                  }}
+                >
                   <span style={{ color: 'var(--status-online)' }}><IconOnline /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Belimo Sensor</div>

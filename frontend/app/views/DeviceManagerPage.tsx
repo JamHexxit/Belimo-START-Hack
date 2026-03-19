@@ -12,7 +12,14 @@ const IconEmpty = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 
 export default function DeviceManagerPage() {
   const { devices, rooms, refreshDevices, addNotification } = useApp();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.hash.startsWith('#search-')) {
+      const q = decodeURIComponent(window.location.hash.replace('#search-', ''));
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      return q;
+    }
+    return '';
+  });
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState({ influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
   const [submitting, setSubmitting] = useState(false);
