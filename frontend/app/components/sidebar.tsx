@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useApp } from '../context/AppContext';
+import { useRef, useEffect, useState } from 'react';
 
 type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
 
@@ -44,6 +45,21 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const { devices, unreadCount } = useApp();
   const theme = useTheme();
 
+  const navRef = useRef<HTMLElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
+
+  useEffect(() => {
+    if (!navRef.current) return;
+    const activeEl = navRef.current.querySelector('.sidebar-nav-item.active') as HTMLElement;
+    if (activeEl) {
+      setIndicatorStyle({
+        top: activeEl.offsetTop,
+        height: activeEl.offsetHeight,
+        opacity: 1
+      });
+    }
+  }, [activePage, devices.length, unreadCount]);
+
   const navItems = [
     { id: 'dashboard' as Page, label: 'Dashboard', icon: <IconDashboard /> },
     { id: 'devices' as Page, label: 'Device Manager', icon: <IconDevices />, badge: devices.length > 0 ? String(devices.length) : undefined },
@@ -54,7 +70,14 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   return (
     <aside className="sidebar">
       {/* Logo */}
-      <div className="sidebar-logo">
+      <div 
+        className="sidebar-logo" 
+        onClick={() => {
+          onNavigate('dashboard');
+          document.querySelector('.page-content')?.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        style={{ cursor: 'pointer' }}
+      >
         <Image
           src="/logo-1x.png"
           alt="Belimo Logo"
@@ -66,8 +89,18 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" ref={navRef} style={{ position: 'relative' }}>
         <div className="sidebar-section-label">Monitor</div>
+        <div 
+          style={{
+            position: 'absolute',
+            left: 8,
+            width: 3,
+            background: 'var(--belimo-orange)',
+            transition: 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+            ...indicatorStyle
+          }}
+        />
         {navItems.map(item => (
           <button
             key={item.id}

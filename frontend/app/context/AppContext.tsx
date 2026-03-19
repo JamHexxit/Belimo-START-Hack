@@ -82,7 +82,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const markAllRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications([]);
   }, []);
 
   const clearNotification = useCallback((id: string) => {
