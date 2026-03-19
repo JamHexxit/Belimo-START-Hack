@@ -801,6 +801,103 @@ html, body {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ============================
+   FILTER DROPDOWNS
+   ============================ */
+.filter-container {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.filter-dropdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+  position: relative;
+  text-align: left;
+}
+
+.filter-dropdown:hover {
+  border-color: var(--belimo-orange);
+  background: var(--bg-card-hover);
+}
+
+.filter-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.filter-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.filter-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.filter-dropdown:hover .filter-chevron {
+  color: var(--belimo-orange);
+}
+
+.filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-hover);
+  z-index: 1000;
+  padding: 6px;
+  animation: fadeIn 0.15s ease;
+}
+
+.filter-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.15s;
+}
+
+.filter-menu-item:hover {
+  background: var(--bg-input);
+}
+
+.filter-menu-item.active {
+  color: var(--belimo-orange);
+  font-weight: 700;
+  background: var(--belimo-orange-light);
+}
+
 .modal-header {
   display: flex;
   align-items: center;

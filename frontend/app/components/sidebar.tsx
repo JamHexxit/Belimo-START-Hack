@@ -201,6 +201,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                         className={`sidebar-nav-item hierarchy-item ${selectedBuildingId === building.buildingId && !selectedPlaceId ? 'active' : ''}`}
                         style={{ fontSize: 12, height: 28, paddingLeft: 8, gap: 4 }}
                         onClick={() => {
+                          setSelectedCompanyId(company.companyId);
                           setSelectedBuildingId(building.buildingId);
                           setSelectedPlaceId(null);
                           if (!expandedIds.has(building.buildingId)) {
@@ -228,6 +229,8 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                               className={`sidebar-nav-item hierarchy-item ${selectedPlaceId === place.placeId ? 'active' : ''}`}
                               style={{ fontSize: 11, height: 24, paddingLeft: 12, gap: 8 }}
                               onClick={() => {
+                                setSelectedCompanyId(company.companyId);
+                                setSelectedBuildingId(building.buildingId);
                                 setSelectedPlaceId(place.placeId);
                                 onNavigate('dashboard');
                               }}

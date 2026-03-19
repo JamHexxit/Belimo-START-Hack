@@ -296,7 +296,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
       )}
 
       {/* 1. Company Selection */}
-      {!selectedCompanyId && (
+      {!selectedCompanyId && !selectedBuildingId && !selectedPlaceId && (
         <div className="selection-grid">
            {companies.map(c => {
                const cB = buildings.filter(b => b.companyId === c.companyId).map(b=>b.buildingId);

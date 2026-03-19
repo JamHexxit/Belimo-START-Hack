@@ -29,6 +29,71 @@ function formatTime(d: Date) {
   return d.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+interface FilterSelectProps {
+  label: string;
+  value: string;
+  options: { id: string; name: string }[];
+  onChange: (id: string) => void;
+  placeholder: string;
+}
+
+function FilterSelect({ label, value, options, onChange, placeholder }: FilterSelectProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find(o => o.id === value);
+  const displayValue = selectedOption ? selectedOption.name : placeholder;
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="filter-dropdown" ref={containerRef} onClick={() => setIsOpen(!isOpen)}>
+      <div className="filter-label">{label}</div>
+      <div className="filter-value">
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: 8 }}>
+          {displayValue}
+        </span>
+        <span className="filter-chevron" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', display: 'flex' }}>
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </div>
+      {isOpen && (
+        <div className="filter-menu">
+          <button 
+            className={`filter-menu-item ${!value ? 'active' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onChange(''); setIsOpen(false); }}
+          >
+            {placeholder}
+            {!value && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+          </button>
+          {options.map(opt => (
+            <button 
+              key={opt.id}
+              className={`filter-menu-item ${value === opt.id ? 'active' : ''}`}
+              onClick={(e) => { e.stopPropagation(); onChange(opt.id); setIsOpen(false); }}
+            >
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: 8 }}>{opt.name}</span>
+              {value === opt.id && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NotificationsPage() {
   const { notifications, markAllRead, clearNotification, unreadCount, companies, buildings, places } = useApp();
   const t = useTranslation();
@@ -51,43 +116,46 @@ export default function NotificationsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
+      <div className="page-header" style={{ marginBottom: 24, alignItems: 'flex-start' }}>
+        <div style={{ flex: 1 }}>
           <div className="page-title">{t.notifications.title}</div>
           <div className="page-subtitle">{filteredNotifications.length}/{notifications.length} {t.notifications.total} · {unreadCount} {t.notifications.unread}</div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {/* Compact Filters */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <FilterSelect 
+              label="Company"
+              value={companyFilter}
+              options={companies.map(c => ({ id: c.companyId, name: c.name }))}
+              placeholder="All Companies"
+              onChange={(val: string) => { setCompanyFilter(val); setBuildingFilter(''); setPlaceFilter(''); }}
+            />
+
+            <FilterSelect 
+              label="Building"
+              value={buildingFilter}
+              options={companyBuildings.map(b => ({ id: b.buildingId, name: b.name }))}
+              placeholder="All Buildings"
+              onChange={(val: string) => { setBuildingFilter(val); setPlaceFilter(''); }}
+            />
+
+            <FilterSelect 
+              label="Room"
+              value={placeFilter}
+              options={buildingPlaces.map(p => ({ id: p.placeId, name: p.name }))}
+              placeholder="All Rooms"
+              onChange={(val: string) => setPlaceFilter(val)}
+            />
+          </div>
+
+          <div style={{ width: 1, height: 24, background: 'var(--border-subtle)', margin: '0 4px' }} />
+
           {unreadCount > 0 && (
-            <button className="btn btn-secondary" onClick={markAllRead}>{t.notifications.markAllRead}</button>
+            <button className="btn btn-secondary" onClick={markAllRead} style={{ height: 42 }}>{t.notifications.markAllRead}</button>
           )}
         </div>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
-        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
-          Company
-          <select value={companyFilter} onChange={e => { setCompanyFilter(e.target.value); setBuildingFilter(''); setPlaceFilter(''); }}>
-            <option value="">All Companies</option>
-            {companies.map(company => <option key={company.companyId} value={company.companyId}>{company.name}</option>)}
-          </select>
-        </label>
-
-        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
-          Building
-          <select value={buildingFilter} onChange={e => { setBuildingFilter(e.target.value); setPlaceFilter(''); }}>
-            <option value="">All Buildings</option>
-            {companyBuildings.map(building => <option key={building.buildingId} value={building.buildingId}>{building.name}</option>)}
-          </select>
-        </label>
-
-        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
-          Room
-          <select value={placeFilter} onChange={e => setPlaceFilter(e.target.value)}>
-            <option value="">All Rooms</option>
-            {buildingPlaces.map(place => <option key={place.placeId} value={place.placeId}>{place.name}</option>)}
-          </select>
-        </label>
       </div>
 
       {/* Summary Chips */}

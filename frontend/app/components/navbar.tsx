@@ -107,14 +107,11 @@ export default function Navbar({ activePage }: NavbarProps) {
         {/* Language Switcher */}
         <div ref={langRef} style={{ position: 'relative' }}>
           <button
-            className="theme-toggle"
+            className="navbar-btn"
             onClick={() => setShowLangMenu(v => !v)}
             title="Change language"
-            style={{ gap: 5, minWidth: 64 }}
           >
             <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 4px', border: '1px solid currentColor', borderRadius: 2 }}>{activeLang.flag}</span>
-            {activeLang.label}
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           {showLangMenu && (
             <div className="language-menu">
@@ -136,9 +133,8 @@ export default function Navbar({ activePage }: NavbarProps) {
         </div>
 
         {/* Theme Toggle */}
-        <button className="theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+        <button className="navbar-btn" onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
           {theme === 'light' ? <IconMoon /> : <IconSun />}
-          {theme === 'light' ? t.nav.dark : t.nav.light}
         </button>
 
         {/* Refresh */}
