@@ -268,7 +268,6 @@ app.get('/api/devices/:deviceId/status', async (req, res) => {
         await queryApi.collectRows(fluxQuery);
         res.json({ deviceId, status: 'online' });
     } catch (error) {
-        console.error(`Device ${deviceId} is offline:`, error.message);
         res.json({
             deviceId,
             status: 'offline',
@@ -293,26 +292,3 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`Central Backend running on port ${PORT}`);
 });
-
-for(const [deviceId, device] of deviceRegistry){
-    const writeApi = device.client.getWriteApi(device.org, 'actuator-data', 'ns');
-
-    // Just the measurement name, no tags!
-    const point = new Point('_process')
-        .floatField('setpoint_position_%', 100) // Your target position
-        .intField('test_number', 70)           // Your experiment tag
-        .timestamp(new Date(0));
-
-    // Write to the local buffer
-    writeApi.writePoint(point);
-
-    // Flush the buffer immediately to move the hardware
-    writeApi.close()
-        .then(() => {
-            console.log(`\nCOMMAND SENT: Actuator moving to 50%`);
-        })
-        .catch(error => {
-            console.error('\nWrite Error:', error);
-        });
-
-}
