@@ -6,11 +6,12 @@ import {
   createCompany, updateCompany, deleteCompany,
   createBuilding, updateBuilding, deleteBuilding,
   createPlace, updatePlace, deletePlace,
-  addDevice, updateDevice, deleteDevice, isDeviceOnline,
-  Device
+  getDevices, getCompanies, getBuildings, getPlaces,
+  addDevice, updateDevice, deleteDevice, isDeviceOnline, Device
 } from '../lib/api';
 import DeviceCard from '../components/card';
 import { useTranslation } from '../lib/i18n';
+import { PortfolioView } from './PortfolioView';
 const IconDevices = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
 const IconOnline = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>;
 const IconRoom = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
@@ -206,6 +207,10 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
   const currentCompany = companies.find(c => c.companyId === selectedCompanyId);
   const currentBuilding = buildings.find(b => b.buildingId === selectedBuildingId);
   const currentPlace = places.find(p => p.placeId === selectedPlaceId);
+
+  if (!selectedCompanyId && !selectedBuildingId && !selectedPlaceId) {
+    return <PortfolioView />;
+  }
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease-out' }}>

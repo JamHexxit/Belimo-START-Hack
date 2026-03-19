@@ -46,7 +46,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activePage }: NavbarProps) {
-  const { devices, unreadCount, theme, toggleTheme, refreshDevices, refreshHierarchy, language, setLanguage } = useApp();
+  const { devices, unreadCount, theme, toggleTheme, refreshDevices, refreshHierarchy, language, setLanguage, selectedCompanyId } = useApp();
   const t = useTranslation();
   const [showNotifs, setShowNotifs] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,10 +62,15 @@ export default function Navbar({ activePage }: NavbarProps) {
   const activeLang = LANGUAGES.find(l => l.code === language)!;
 
   const info = {
-    dashboard: { title: t.nav.dashboardTitle, subtitle: t.nav.dashboardSubtitle },
-    statistics: { title: 'Global Portfolio', subtitle: 'Aggregate metrics across all customers' },
-    notifications: { title: t.nav.notificationsTitle, subtitle: t.nav.notificationsSubtitle },
-  }[activePage as 'dashboard' | 'statistics' | 'notifications'];
+    dashboard: { 
+      title: t.nav.dashboardTitle, 
+      subtitle: !selectedCompanyId ? 'Global Portfolio' : 'Customer Overview' 
+    },
+    notifications: { 
+      title: t.nav.notificationsTitle, 
+      subtitle: t.nav.notificationsSubtitle 
+    },
+  }[activePage as 'dashboard' | 'notifications'];
 
   const total = devices.length;
   const statusClass = total === 0 ? '' : 'online';

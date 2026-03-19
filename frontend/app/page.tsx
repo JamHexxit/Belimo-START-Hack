@@ -6,7 +6,6 @@ import Navbar from './components/navbar';
 import ToastContainer from './components/notification';
 import ParticleBackground from './components/particle_background';
 import DashboardPage from './views/DashboardPage';
-import StatisticsPage from './views/StatisticsPage';
 import NotificationsPage from './views/NotificationsPage';
 import { AppProvider } from './context/AppContext';
 import { Page } from './lib/types';
@@ -17,7 +16,6 @@ function AppShell() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard': return <DashboardPage onNavigate={setActivePage} />;
-      case 'statistics': return <StatisticsPage />;
       case 'notifications': return <NotificationsPage />;
     }
   };
