@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Device, Room, DeviceInfo, getDeviceInfo, deleteDevice, updateDevice, isDeviceOnline } from '../lib/api';
+import { Device, Room, DeviceInfo, DeviceInfoResponse, getDeviceInfo, deleteDevice, updateDevice, isDeviceOnline } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../lib/i18n';
 
@@ -9,6 +9,7 @@ import { useTranslation } from '../lib/i18n';
 const IconEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IconCPU = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>;
 const IconTrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M9 6V4h6v2"/></svg>;
+const IconAlert = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 const IconData = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 const IconHome = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
 const IconWifi = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>;
@@ -27,7 +28,7 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
   const { addNotification, refreshDevices } = useApp();
   const t = useTranslation();
   const [expanded, setExpanded] = useState(false);
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo[] | null>(null);
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfoResponse | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(device.roomId || '');
@@ -35,6 +36,7 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
 
   // New state for dynamic status
   const [status, setStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [lastNotifiedStatus, setLastNotifiedStatus] = useState<'healthy' | 'warning' | 'error' | 'offline' | 'none'>('none');
 
   const room = rooms.find(r => r.roomId === device.roomId);
 
@@ -46,10 +48,24 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
       try {
         const isOnline = await isDeviceOnline(device.deviceId);
         if (isMounted) {
-          setStatus(isOnline ? 'online' : 'offline');
+          const newStatus = isOnline ? 'online' : 'offline';
+          setStatus(newStatus);
+          
+          if (newStatus === 'offline' && lastNotifiedStatus !== 'offline') {
+            addNotification('error', 'Device Offline', `Device "${device.name}" has lost connection.`);
+            setLastNotifiedStatus('offline');
+          } else if (newStatus === 'online' && lastNotifiedStatus === 'offline') {
+            setLastNotifiedStatus('healthy'); // Reset on recovery
+          }
         }
       } catch (err) {
-        if (isMounted) setStatus('offline');
+        if (isMounted) {
+          setStatus('offline');
+          if (lastNotifiedStatus !== 'offline') {
+            addNotification('error', 'Device Offline', `Device "${device.name}" connection error.`);
+            setLastNotifiedStatus('offline');
+          }
+        }
       }
     };
 
@@ -72,9 +88,17 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
       try {
         const info = await getDeviceInfo(device.deviceId);
         setDeviceInfo(info);
+
+        // One-time health notification
+        if (info.health && info.health.status === 'error' && lastNotifiedStatus !== 'error') {
+          addNotification('error', 'Critical Device Error', `Device "${device.name}": ${info.health.message}`);
+          setLastNotifiedStatus('error');
+        } else if (info.health && info.health.status === 'healthy' && lastNotifiedStatus === 'error') {
+          setLastNotifiedStatus('healthy'); // Reset on recovery
+        }
       } catch {
         addNotification('warning', 'Query Failed', `No telemetry for ${shortId(device.deviceId)}`);
-        setDeviceInfo([]);
+        setDeviceInfo({ data: [] });
       } finally {
         setLoadingData(false);
       }
@@ -116,36 +140,65 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
 
   // ── Render telemetry rows (from getInformations)
   const renderTelemetry = () => {
-    if (!deviceInfo || deviceInfo.length === 0) {
+    if (!deviceInfo || !deviceInfo.data || deviceInfo.data.length === 0) {
       return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '10px 0', textAlign: 'center' }}>No telemetry data in last 10 min</div>;
     }
 
     const fields = new Map<string, { value: unknown; time?: string }>();
-    for (const row of deviceInfo) {
+    for (const row of deviceInfo.data) {
       if (row._field && row._value !== undefined) {
         fields.set(String(row._field), { value: row._value, time: row._time ? String(row._time) : undefined });
       }
     }
 
-    if (fields.size === 0) {
+    if (fields.size === 0 && !deviceInfo.health) {
       return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '10px 0', textAlign: 'center' }}>No structured fields found</div>;
     }
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8, marginTop: 10 }}>
-          {/* Clean Health Status Metric */}
-          <div className="device-metric" style={{ borderLeft: `3px solid ${status === 'online' ? 'var(--status-online)' : 'var(--status-error)'}` }}>
-            <div className="device-metric-label">Health</div>
-            <div className="device-metric-value" style={{ 
-              fontSize: 16, 
-              color: status === 'online' ? 'var(--status-online)' : 'var(--status-error)' 
+          {/* Detailed Error Block if status is error */}
+          {deviceInfo.health && deviceInfo.health.status === 'error' && (
+            <div style={{ 
+              gridColumn: '1 / -1', 
+              padding: '12px 16px', 
+              background: 'rgba(220, 38, 38, 0.1)', 
+              border: '1px solid rgba(220, 38, 38, 0.3)',
+              color: '#dc2626',
+              fontSize: 13,
+              fontWeight: 600,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              marginBottom: 4
             }}>
-              {status === 'checking' ? '...' : status === 'online' ? 'Online' : 'Offline'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                 <IconAlert /> <span>Critical Malfunction Detected</span>
+              </div>
+              <div style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-secondary)' }}>
+                {deviceInfo.health.message}
+              </div>
             </div>
-            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
-              Status Endpoint
+          )}
+
+          {/* Clean Health Status Metric */}
+          {deviceInfo.health && (
+            <div className="device-metric" style={{ 
+              borderLeft: `3px solid ${deviceInfo.health.status === 'healthy' ? 'var(--status-online)' : deviceInfo.health.status === 'warning' ? 'var(--status-warning)' : 'var(--status-error)'}`,
+              background: deviceInfo.health.status === 'error' ? 'var(--status-error-bg)' : undefined
+            }}>
+              <div className="device-metric-label">Health</div>
+              <div className="device-metric-value" style={{ 
+                fontSize: 14, 
+                color: deviceInfo.health.status === 'healthy' ? 'var(--status-online)' : deviceInfo.health.status === 'warning' ? 'var(--status-warning)' : 'var(--status-error)' 
+              }}>
+                {deviceInfo.health.status.charAt(0).toUpperCase() + deviceInfo.health.status.slice(1)}
+              </div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={deviceInfo.health.message}>
+                {deviceInfo.health.message}
+              </div>
             </div>
-          </div>
+          )}
           {/* Dynamic Telemetry Fields */}
           {Array.from(fields.entries()).map(([field, data]) => (
               <div key={field} className="device-metric">
@@ -174,7 +227,7 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
           <div>
             <div className="device-name">
               <IconCPU />
-              {t.dashboard.sensor}
+              {device.name}
             </div>
             <div className="device-id">{shortId(device.deviceId)}</div>
           </div>

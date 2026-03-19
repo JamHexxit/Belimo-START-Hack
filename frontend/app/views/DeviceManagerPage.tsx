@@ -24,19 +24,20 @@ export default function DeviceManagerPage() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
-  const [form, setForm] = useState({ influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
+  const [form, setForm] = useState({ name: '', influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
   const openAdd = () => {
     setEditingDevice(null);
-    setForm({ influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
+    setForm({ name: '', influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
     setShowAddModal(true);
   };
 
   const openEdit = (d: Device) => {
     setEditingDevice(d);
     setForm({
+      name: d.name,
       influxUrl: d.url,
       influxToken: '', 
       org: d.org,
@@ -47,6 +48,7 @@ export default function DeviceManagerPage() {
   };
 
   const filtered = devices.filter(d =>
+    d.name.toLowerCase().includes(search.toLowerCase()) ||
     d.deviceId.toLowerCase().includes(search.toLowerCase()) ||
     d.org.toLowerCase().includes(search.toLowerCase()) ||
     d.bucket.toLowerCase().includes(search.toLowerCase())
@@ -63,25 +65,27 @@ export default function DeviceManagerPage() {
     try {
       if (editingDevice) {
         await updateDevice(editingDevice.deviceId, {
+          name: form.name !== editingDevice.name ? form.name : undefined,
           influxUrl: form.influxUrl !== editingDevice.url ? form.influxUrl : undefined,
           influxToken: form.influxToken ? form.influxToken : undefined,
           org: form.org !== editingDevice.org ? form.org : undefined,
           bucket: form.bucket !== editingDevice.bucket ? form.bucket : undefined,
           roomId: form.roomId || null,
         });
-        addNotification('success', 'Device Updated', `Connection details updated.`);
+        addNotification('success', 'Device Updated', `Device "${form.name}" updated.`);
       } else {
         const result = await addDevice({
+          name: form.name || undefined,
           influxUrl: form.influxUrl,
           influxToken: form.influxToken,
           org: form.org,
           bucket: form.bucket,
           roomId: form.roomId || undefined,
         });
-        addNotification('success', 'Device Added', `New device registered: ${result.deviceId.slice(0, 8)}…`);
+        addNotification('success', 'Device Added', `New device "${form.name || result.deviceId.slice(0, 8)}" registered.`);
       }
       setShowAddModal(false);
-      setForm({ influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
+      setForm({ name: '', influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
       await refreshDevices();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -155,6 +159,10 @@ export default function DeviceManagerPage() {
               <div className="modal-body">
                 <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--belimo-orange-light)', fontSize: 12, color: 'var(--belimo-orange)', borderLeft: '3px solid var(--belimo-orange)' }}>
                   {editingDevice ? t.devices.modalDescEdit : t.devices.modalDescAdd}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Device Name</label>
+                  <input className="form-input" placeholder="e.g. Living Room Supply Air" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t.devices.urlLabel}</label>

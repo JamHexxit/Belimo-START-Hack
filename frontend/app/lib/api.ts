@@ -3,6 +3,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export interface Device {
   deviceId: string;
+  name: string;
   url: string;
   org: string;
   bucket: string;
@@ -97,6 +98,7 @@ export async function addDevice(data: {
   org: string;
   bucket: string;
   roomId?: string;
+  name?: string;
 }): Promise<{ deviceId: string }> {
   const res = await fetch(`${BASE_URL}/api/devices`, {
     method: 'POST',
@@ -115,6 +117,7 @@ export async function updateDevice(
   deviceId: string,
   data: {
     roomId?: string | null;
+    name?: string;
     influxUrl?: string;
     influxToken?: string;
     org?: string;
@@ -141,7 +144,15 @@ export async function deleteDevice(deviceId: string): Promise<void> {
  * GET /api/devices/:deviceId/getInformations
  * Queries the last 10 minutes of actuator-data bucket.
  */
-export async function getDeviceInfo(deviceId: string): Promise<DeviceInfo[]> {
+export interface DeviceInfoResponse {
+  data: DeviceInfo[];
+  health?: {
+    status: string;
+    message: string;
+  };
+}
+
+export async function getDeviceInfo(deviceId: string): Promise<DeviceInfoResponse> {
   const res = await fetch(
     `${BASE_URL}/api/devices/${deviceId}/getInformations`,
   );
