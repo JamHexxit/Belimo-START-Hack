@@ -130,7 +130,7 @@ function loadDevices() {
                 client,
                 lastPosition: null,
                 positionStagnantCount: 0,
-                mockSimulationState: { scenario: 'normal', tick: 0, setpoint: 100, feedback: 0 }
+                mockSimulationState: { scenario: config.scenario || 'normal', tick: 0, setpoint: 100, feedback: 0 }
             });
             console.log(`Loaded device ${deviceId} mapping to ${config.influxUrl}`);
         }

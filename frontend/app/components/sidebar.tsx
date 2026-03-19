@@ -106,7 +106,6 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   const navItems = [
     { id: 'dashboard' as Page, label: 'Portfolio', icon: <IconDashboard /> },
-    { id: 'companies' as Page, label: t.sidebar.companies || 'Companies', icon: <IconCompany /> },
     { id: 'notifications' as Page, label: t.sidebar.notifications, icon: <IconBell />, badge: unreadCount > 0 ? String(unreadCount) : undefined },
   ];
 

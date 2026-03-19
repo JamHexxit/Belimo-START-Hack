@@ -66,15 +66,11 @@ export default function Navbar({ activePage }: NavbarProps) {
       title: 'Portfolio', 
       subtitle: !selectedCompanyId ? 'Global Portfolio' : 'Customer Overview' 
     },
-    companies: {
-      title: 'Companies',
-      subtitle: 'Manage clients and organizations'
-    },
     notifications: { 
       title: t.nav.notificationsTitle, 
       subtitle: t.nav.notificationsSubtitle 
     },
-  }[activePage as 'dashboard' | 'companies' | 'notifications'];
+  }[activePage as 'dashboard' | 'notifications'];
 
   const total = devices.length;
   const statusClass = total === 0 ? '' : 'online';
