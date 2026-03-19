@@ -486,7 +486,7 @@ html, body {
 .room-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 20px;
   transition: all 0.2s ease;
   position: relative;
