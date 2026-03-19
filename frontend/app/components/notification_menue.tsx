@@ -1,6 +1,7 @@
 'use client';
 
 import { useApp, Notification } from '../context/AppContext';
+import { useTranslation } from '../lib/i18n';
 
 const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>;
 const IconCheck = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -26,12 +27,13 @@ interface NotificationMenuProps {
 
 export default function NotificationMenu({ onClose }: NotificationMenuProps) {
   const { notifications, markAllRead, clearNotification, unreadCount } = useApp();
+  const t = useTranslation();
 
   return (
     <div className="notif-panel">
       <div className="notif-panel-header">
         <span className="notif-panel-title">
-          Notifications {unreadCount > 0 && <span className="sidebar-badge" style={{ marginLeft: 6 }}>{unreadCount}</span>}
+          {t.notifications.title} {unreadCount > 0 && <span className="sidebar-badge" style={{ marginLeft: 6 }}>{unreadCount}</span>}
         </span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {unreadCount > 0 && (
@@ -40,7 +42,7 @@ export default function NotificationMenu({ onClose }: NotificationMenuProps) {
               onClick={markAllRead}
               style={{ fontSize: 11 }}
             >
-              Mark all read
+              {t.notifications.markAllRead}
             </button>
           )}
           <button className="btn-icon" onClick={onClose}><IconX /></button>
@@ -50,7 +52,7 @@ export default function NotificationMenu({ onClose }: NotificationMenuProps) {
       <div className="notif-list">
         {notifications.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-            No notifications yet
+            {t.notifications.noNotifsYet}
           </div>
         ) : (
           notifications.map((n: Notification) => (

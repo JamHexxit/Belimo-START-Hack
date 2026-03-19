@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { isDeviceOnline } from '../lib/api';
+import { useTranslation } from '../lib/i18n';
 
 const IconDevices = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
 const IconOnline = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>;
@@ -18,6 +19,7 @@ interface DashboardProps {
 
 export default function DashboardPage({ onNavigate }: DashboardProps) {
   const { devices, rooms, notifications } = useApp();
+  const t = useTranslation();
 
   const [deviceStatuses, setDeviceStatuses] = useState<Record<string, boolean>>({});
 
@@ -48,10 +50,10 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
 
   const systemOk = errors === 0;
   const statusText = totalDevices === 0
-    ? 'No devices connected'
+    ? t.dashboard.noDevices
     : errors > 0
-    ? `${errors} error${errors > 1 ? 's' : ''} detected`
-    : 'All systems operational';
+    ? `${errors} ${errors > 1 ? t.dashboard.errors : t.dashboard.error}`
+    : t.dashboard.systemsOk;
 
   return (
     <div>
@@ -81,7 +83,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
-            Global System Status
+            {t.dashboard.globalStatus}
           </div>
           <div style={{ fontSize: 13, color: systemOk ? 'var(--status-online)' : 'var(--status-error)', marginTop: 3 }}>
             {statusText}
@@ -98,7 +100,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
           color: systemOk ? 'var(--status-online)' : 'var(--status-error)',
         }}>
           <span style={{ width: 8, height: 8, background: 'currentColor', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-          {systemOk ? 'HEALTHY' : 'DEGRADED'}
+          {systemOk ? t.dashboard.healthy : t.dashboard.degraded}
         </div>
       </div>
 
@@ -108,28 +110,28 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
           <div className="stat-icon orange"><IconDevices /></div>
           <div>
             <div className="stat-value">{totalDevices}</div>
-            <div className="stat-label">Total Devices</div>
+            <div className="stat-label">{t.dashboard.totalDevices}</div>
           </div>
         </div>
         <div className="stat-card" onClick={() => onNavigate('devices')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon green"><IconOnline /></div>
           <div>
             <div className="stat-value" style={{ color: 'var(--status-online)' }}>{onlineCount}</div>
-            <div className="stat-label">Online</div>
+            <div className="stat-label">{t.dashboard.online}</div>
           </div>
         </div>
         <div className="stat-card" onClick={() => onNavigate('rooms')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon blue"><IconRoom /></div>
           <div>
             <div className="stat-value">{totalRooms}</div>
-            <div className="stat-label">Rooms</div>
+            <div className="stat-label">{t.dashboard.rooms}</div>
           </div>
         </div>
         <div className="stat-card" onClick={() => onNavigate('notifications')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon red"><IconAlert /></div>
           <div>
             <div className="stat-value" style={{ color: errors > 0 ? 'var(--status-error)' : 'var(--text-primary)' }}>{unread}</div>
-            <div className="stat-label">Unread Alerts</div>
+            <div className="stat-label">{t.dashboard.unreadAlerts}</div>
           </div>
         </div>
       </div>
@@ -138,10 +140,10 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* Recent Devices */}
         <div className="card">
-          <div className="section-title">Recent Devices</div>
+          <div className="section-title">{t.dashboard.recentDevices}</div>
           {devices.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center' }}>
-              No devices registered yet
+              {t.dashboard.noRecentDevices}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -168,7 +170,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
                       {isOnline === undefined ? <span className="loading-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <IconOnline />}
                     </span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>Belimo Sensor</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{t.dashboard.sensor}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{d.deviceId.slice(0, 12)}…</div>
                     </div>
                     <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{d.bucket}</span>
@@ -181,10 +183,10 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
 
         {/* Recent Notifications */}
         <div className="card">
-          <div className="section-title">Recent Alerts</div>
+          <div className="section-title">{t.dashboard.recentAlerts}</div>
           {notifications.length === 0 ? (
             <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '20px 0', textAlign: 'center' }}>
-              No notifications
+              {t.dashboard.noAlerts}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

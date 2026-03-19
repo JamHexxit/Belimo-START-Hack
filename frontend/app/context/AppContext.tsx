@@ -5,6 +5,7 @@ import { getDevices, getRooms, Device, Room } from '../lib/api';
 
 // ===== Notification Types =====
 export type NotifType = 'info' | 'success' | 'warning' | 'error';
+export type Language = 'en' | 'de' | 'fr';
 
 export interface Notification {
   id: string;
@@ -23,6 +24,8 @@ interface AppContextValue {
   isLoading: boolean;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  language: Language;
+  setLanguage: (lang: Language) => void;
   refreshDevices: () => Promise<void>;
   refreshRooms: () => Promise<void>;
   addNotification: (type: NotifType, title: string, message: string) => void;
@@ -39,6 +42,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [language, setLanguage] = useState<Language>('en');
 
   // Apply theme to document
   useEffect(() => {
@@ -108,6 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       devices, rooms, notifications, isLoading, theme, toggleTheme,
+      language, setLanguage,
       refreshDevices, refreshRooms, addNotification,
       markAllRead, clearNotification, unreadCount,
     }}>

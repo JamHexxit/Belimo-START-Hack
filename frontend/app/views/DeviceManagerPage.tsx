@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import DeviceCard from '../components/card';
 import { addDevice, updateDevice, Device } from '../lib/api';
+import { useTranslation } from '../lib/i18n';
 
 const IconPlus = () => <svg style={{ transform: 'translateY(1.5px)' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const IconSearch = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
@@ -13,6 +14,7 @@ const IconEmpty = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 
 export default function DeviceManagerPage() {
   const { devices, rooms, refreshDevices, addNotification } = useApp();
+  const t = useTranslation();
   const [search, setSearch] = useState(() => {
     if (typeof window !== 'undefined' && window.location.hash.startsWith('#search-')) {
       return decodeURIComponent(window.location.hash.replace('#search-', ''));
@@ -95,20 +97,20 @@ export default function DeviceManagerPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <div className="page-title">Device Manager</div>
-          <div className="page-subtitle">{devices.length} device{devices.length !== 1 ? 's' : ''} registered</div>
+          <div className="page-title">{t.devices.title}</div>
+          <div className="page-subtitle">{devices.length} device{devices.length !== 1 ? 's' : ''} {t.devices.registered}</div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div className="search-bar">
             <IconSearch />
             <input
-              placeholder="Search devices…"
+              placeholder={t.devices.search}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           <button className="btn btn-primary" onClick={openAdd}>
-            <IconPlus /> Add Device
+            <IconPlus /> {t.devices.addDevice}
           </button>
         </div>
       </div>
@@ -117,13 +119,13 @@ export default function DeviceManagerPage() {
       {filtered.length === 0 ? (
         <div className="empty-state" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', padding: '60px 40px', backdropFilter: 'blur(8px)', boxShadow: 'var(--shadow-card)' }}>
           <IconEmpty />
-          <div className="empty-state-title">{search ? 'No matching devices' : 'No devices yet'}</div>
+          <div className="empty-state-title">{search ? t.devices.noMatch : t.devices.noDevices}</div>
           <div className="empty-state-desc">
-            {search ? 'Try a different search term.' : 'Add your first Belimo sensor device to get started.'}
+            {search ? t.devices.noMatchDesc : t.devices.noDevicesDesc}
           </div>
           {!search && (
             <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={openAdd}>
-              <IconPlus /> Add First Device
+              <IconPlus /> {t.devices.addFirst}
             </button>
           )}
         </div>
@@ -146,36 +148,36 @@ export default function DeviceManagerPage() {
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">{editingDevice ? 'Edit Device Connection' : 'Add New Device'}</span>
+              <span className="modal-title">{editingDevice ? t.devices.editModalTitle : t.devices.addModalTitle}</span>
               <button className="btn-icon" onClick={() => setShowAddModal(false)}><IconX /></button>
             </div>
             <form onSubmit={handleAdd}>
               <div className="modal-body">
                 <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--belimo-orange-light)', fontSize: 12, color: 'var(--belimo-orange)', borderLeft: '3px solid var(--belimo-orange)' }}>
-                  {editingDevice ? 'Change server or connection details for this sensor.' : 'Connect a Belimo sensor via its InfluxDB data source.'}
+                  {editingDevice ? t.devices.modalDescEdit : t.devices.modalDescAdd}
                 </div>
                 <div className="form-group">
-                  <label className="form-label">InfluxDB URL *</label>
+                  <label className="form-label">{t.devices.urlLabel}</label>
                   <input className="form-input" placeholder="http://localhost:8086" value={form.influxUrl} onChange={e => setForm(f => ({ ...f, influxUrl: e.target.value }))} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">{editingDevice ? 'API Token (leave blank to keep current)' : 'API Token *'}</label>
+                  <label className="form-label">{editingDevice ? t.devices.tokenLabelEdit : t.devices.tokenLabelAdd}</label>
                   <input className="form-input" type="password" placeholder="your-influx-token" value={form.influxToken} onChange={e => setForm(f => ({ ...f, influxToken: e.target.value }))} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div className="form-group">
-                    <label className="form-label">Organization *</label>
+                    <label className="form-label">{t.devices.orgLabel}</label>
                     <input className="form-input" placeholder="my-org" value={form.org} onChange={e => setForm(f => ({ ...f, org: e.target.value }))} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Bucket *</label>
+                    <label className="form-label">{t.devices.bucketLabel}</label>
                     <input className="form-input" placeholder="actuator-data" value={form.bucket} onChange={e => setForm(f => ({ ...f, bucket: e.target.value }))} />
                   </div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Assign to Room (optional)</label>
+                  <label className="form-label">{t.devices.roomLabel}</label>
                   <select className="form-select" value={form.roomId} onChange={e => setForm(f => ({ ...f, roomId: e.target.value }))}>
-                    <option value="">— No room —</option>
+                    <option value="">{t.devices.noRoom}</option>
                     {rooms.map(r => <option key={r.roomId} value={r.roomId}>{r.name}</option>)}
                   </select>
                 </div>
@@ -186,10 +188,10 @@ export default function DeviceManagerPage() {
                 )}
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>{t.devices.cancel}</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? <span className="loading-spinner" /> : (!editingDevice && <IconPlus />)}
-                  {submitting ? 'Saving…' : editingDevice ? 'Save Changes' : 'Add Device'}
+                  {submitting ? t.devices.saving : editingDevice ? t.devices.saveBtn : t.devices.addBtn}
                 </button>
               </div>
             </form>

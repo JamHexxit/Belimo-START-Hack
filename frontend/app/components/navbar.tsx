@@ -2,16 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { Language } from '../context/AppContext';
 import NotificationMenu from './notification_menue';
+import { useTranslation } from '../lib/i18n';
 
 type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
 
-const PAGE_TITLES: Record<Page, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Dashboard', subtitle: 'System overview and global status' },
-  devices: { title: 'Device Manager', subtitle: 'Manage and monitor all Belimo sensors' },
-  rooms: { title: 'Room Manager', subtitle: 'Configure rooms and assign sensors' },
-  notifications: { title: 'Notifications', subtitle: 'System alerts and events' },
-};
+// Removed hardcoded PAGE_TITLES since we use translation hook inside the component
 
 // Icons
 const IconBell = () => (
@@ -49,15 +46,31 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activePage }: NavbarProps) {
-  const { devices, unreadCount, theme, toggleTheme, refreshDevices, refreshRooms } = useApp();
+  const { devices, unreadCount, theme, toggleTheme, refreshDevices, refreshRooms, language, setLanguage } = useApp();
+  const t = useTranslation();
   const [showNotifs, setShowNotifs] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
 
-  const info = PAGE_TITLES[activePage];
+  const LANGUAGES: { code: Language; flag: string; label: string }[] = [
+    { code: 'en', flag: '🇬🇧', label: 'EN' },
+    { code: 'de', flag: '🇩🇪', label: 'DE' },
+    { code: 'fr', flag: '🇫🇷', label: 'FR' },
+  ];
+  const activeLang = LANGUAGES.find(l => l.code === language)!;
+
+  const info = {
+    dashboard: { title: t.nav.dashboardTitle, subtitle: t.nav.dashboardSubtitle },
+    devices: { title: t.nav.devicesTitle, subtitle: t.nav.devicesSubtitle },
+    rooms: { title: t.nav.roomsTitle, subtitle: t.nav.roomsSubtitle },
+    notifications: { title: t.nav.notificationsTitle, subtitle: t.nav.notificationsSubtitle },
+  }[activePage];
+
   const total = devices.length;
   const statusClass = total === 0 ? '' : 'online';
-  const statusLabel = total === 0 ? 'No Devices' : `${total} Device${total !== 1 ? 's' : ''} Connected`;
+  const statusLabel = total === 0 ? t.nav.noDevices : `${total} ${total !== 1 ? t.nav.devicesConnected : t.nav.deviceConnected}`;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -70,10 +83,13 @@ export default function Navbar({ activePage }: NavbarProps) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setShowNotifs(false);
       }
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setShowLangMenu(false);
+      }
     };
-    if (showNotifs) document.addEventListener('mousedown', handler);
+    if (showNotifs || showLangMenu) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [showNotifs]);
+  }, [showNotifs, showLangMenu]);
 
   return (
     <header className="navbar">
@@ -89,10 +105,53 @@ export default function Navbar({ activePage }: NavbarProps) {
           {statusLabel}
         </div>
 
+        {/* Language Switcher */}
+        <div ref={langRef} style={{ position: 'relative' }}>
+          <button
+            className="theme-toggle"
+            onClick={() => setShowLangMenu(v => !v)}
+            title="Change language"
+            style={{ gap: 5, minWidth: 64 }}
+          >
+            <span style={{ fontSize: 13 }}>{activeLang.flag}</span>
+            {activeLang.label}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          {showLangMenu && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+              background: 'var(--card-bg)', border: '1px solid var(--border)',
+              borderRadius: 6, overflow: 'hidden', zIndex: 200,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 100,
+            }}>
+              {LANGUAGES.map(l => (
+                <button
+                  key={l.code}
+                  onClick={() => { setLanguage(l.code); setShowLangMenu(false); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    width: '100%', padding: '8px 14px',
+                    background: language === l.code ? 'var(--belimo-orange-faint, rgba(230,81,0,0.08))' : 'transparent',
+                    color: language === l.code ? 'var(--belimo-orange)' : 'var(--text-primary)',
+                    border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: language === l.code ? 600 : 400,
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>{l.flag}</span>
+                  {l.label}
+                  {language === l.code && (
+                    <svg style={{ marginLeft: 'auto' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Theme Toggle */}
         <button className="theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
           {theme === 'light' ? <IconMoon /> : <IconSun />}
-          {theme === 'light' ? 'Dark' : 'Light'}
+          {theme === 'light' ? t.nav.dark : t.nav.light}
         </button>
 
         {/* Refresh */}

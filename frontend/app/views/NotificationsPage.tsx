@@ -1,6 +1,7 @@
 'use client';
 
 import { useApp, Notification } from '../context/AppContext';
+import { useTranslation } from '../lib/i18n';
 
 const IconInfo = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>;
 const IconCheck = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -29,6 +30,7 @@ function formatTime(d: Date) {
 
 export default function NotificationsPage() {
   const { notifications, markAllRead, clearNotification, unreadCount } = useApp();
+  const t = useTranslation();
 
   const byType = (type: string) => notifications.filter(n => n.type === type);
 
@@ -36,12 +38,12 @@ export default function NotificationsPage() {
     <div>
       <div className="page-header">
         <div>
-          <div className="page-title">Notifications</div>
-          <div className="page-subtitle">{notifications.length} total · {unreadCount} unread</div>
+          <div className="page-title">{t.notifications.title}</div>
+          <div className="page-subtitle">{notifications.length} {t.notifications.total} · {unreadCount} {t.notifications.unread}</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {unreadCount > 0 && (
-            <button className="btn btn-secondary" onClick={markAllRead}>Mark all read</button>
+            <button className="btn btn-secondary" onClick={markAllRead}>{t.notifications.markAllRead}</button>
           )}
         </div>
       </div>
@@ -67,8 +69,8 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="empty-state">
           <IconBellOff />
-          <div className="empty-state-title">No notifications</div>
-          <div className="empty-state-desc">System events and alerts will appear here.</div>
+          <div className="empty-state-title">{t.notifications.noNotifs}</div>
+          <div className="empty-state-desc">{t.notifications.noNotifsDesc}</div>
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -76,9 +78,9 @@ export default function NotificationsPage() {
             <thead>
               <tr>
                 <th style={{ width: 36 }}></th>
-                <th>Event</th>
-                <th>Message</th>
-                <th>Time</th>
+                <th>{t.notifications.event}</th>
+                <th>{t.notifications.message}</th>
+                <th>{t.notifications.time}</th>
                 <th style={{ width: 44 }}></th>
               </tr>
             </thead>

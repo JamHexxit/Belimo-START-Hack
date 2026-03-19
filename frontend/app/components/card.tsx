@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Device, Room, DeviceInfo, getDeviceInfo, deleteDevice, updateDevice, isDeviceOnline } from '../lib/api';
 import { useApp } from '../context/AppContext';
+import { useTranslation } from '../lib/i18n';
 
 // Icons
 const IconEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
@@ -24,6 +25,7 @@ interface DeviceCardProps {
 
 export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceCardProps) {
   const { addNotification, refreshDevices } = useApp();
+  const t = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo[] | null>(null);
   const [loadingData, setLoadingData] = useState(false);
@@ -158,7 +160,7 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
           <div>
             <div className="device-name">
               <IconCPU />
-              Belimo Sensor
+              {t.dashboard.sensor}
             </div>
             <div className="device-id">{shortId(device.deviceId)}</div>
           </div>
@@ -205,7 +207,7 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
         <div className="device-footer">
           <div className="device-room-tag">
             <IconHome />
-            {room ? room.name : 'Unassigned'}
+            {room ? room.name : t.devices.noRoom.replace('— ', '').replace(' —', '')}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {onEdit && (

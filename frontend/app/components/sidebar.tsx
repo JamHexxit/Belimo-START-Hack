@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useApp } from '../context/AppContext';
 import { useRef, useEffect, useState } from 'react';
+import { useTranslation } from '../lib/i18n';
 
 type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
 
@@ -44,6 +45,7 @@ const IconBell = () => (
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const { devices, unreadCount } = useApp();
   const theme = useTheme();
+  const t = useTranslation();
 
   const navRef = useRef<HTMLElement>(null);
   const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
@@ -61,10 +63,10 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   }, [activePage, devices.length, unreadCount]);
 
   const navItems = [
-    { id: 'dashboard' as Page, label: 'Dashboard', icon: <IconDashboard /> },
-    { id: 'devices' as Page, label: 'Device Manager', icon: <IconDevices />, badge: devices.length > 0 ? String(devices.length) : undefined },
-    { id: 'rooms' as Page, label: 'Rooms', icon: <IconRooms /> },
-    { id: 'notifications' as Page, label: 'Notifications', icon: <IconBell />, badge: unreadCount > 0 ? String(unreadCount) : undefined },
+    { id: 'dashboard' as Page, label: t.sidebar.dashboard, icon: <IconDashboard /> },
+    { id: 'devices' as Page, label: t.sidebar.devices, icon: <IconDevices />, badge: devices.length > 0 ? String(devices.length) : undefined },
+    { id: 'rooms' as Page, label: t.sidebar.rooms, icon: <IconRooms /> },
+    { id: 'notifications' as Page, label: t.sidebar.notifications, icon: <IconBell />, badge: unreadCount > 0 ? String(unreadCount) : undefined },
   ];
 
   return (
@@ -90,7 +92,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="sidebar-nav" ref={navRef} style={{ position: 'relative' }}>
-        <div className="sidebar-section-label">Monitor</div>
+        <div className="sidebar-section-label">{t.sidebar.monitor}</div>
         <div 
           style={{
             position: 'absolute',

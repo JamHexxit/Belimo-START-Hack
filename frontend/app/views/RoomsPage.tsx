@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { createRoom, updateRoom, deleteRoom } from '../lib/api';
+import { useTranslation } from '../lib/i18n';
 
 // Icons
 const IconPlus = () => <svg style={{ transform: 'translateY(1.5px)' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
@@ -20,6 +21,7 @@ interface EditState {
 
 export default function RoomsPage() {
   const { rooms, devices, refreshRooms, refreshDevices, addNotification } = useApp();
+  const t = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [form, setForm] = useState({ name: '', threshold: '0' });
@@ -90,20 +92,20 @@ export default function RoomsPage() {
     <div>
       <div className="page-header">
         <div>
-          <div className="page-title">Room Manager</div>
-          <div className="page-subtitle">{rooms.length} room{rooms.length !== 1 ? 's' : ''} configured</div>
+          <div className="page-title">{t.rooms.title}</div>
+          <div className="page-subtitle">{rooms.length} room{rooms.length !== 1 ? 's' : ''} {t.rooms.configured}</div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div className="search-bar">
             <IconSearch />
             <input
-              placeholder="Search rooms…"
+              placeholder={t.rooms.search}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           <button className="btn btn-primary" onClick={openCreate}>
-            <IconPlus /> Add Room
+            <IconPlus /> {t.rooms.addRoom}
           </button>
         </div>
       </div>
@@ -111,13 +113,13 @@ export default function RoomsPage() {
       {filteredRooms.length === 0 ? (
         <div className="empty-state" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', padding: '60px 40px', backdropFilter: 'blur(8px)', boxShadow: 'var(--shadow-card)' }}>
           <IconHome />
-          <div className="empty-state-title">{search ? 'No matching rooms' : 'No rooms yet'}</div>
+          <div className="empty-state-title">{search ? t.rooms.noMatch : t.rooms.noRooms}</div>
           <div className="empty-state-desc">
-            {search ? 'Try a different search term.' : 'Create rooms to group sensors by location.'}
+            {search ? t.rooms.noMatchDesc : t.rooms.noRoomsDesc}
           </div>
           {!search && (
             <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={openCreate}>
-              <IconPlus /> Create First Room
+              <IconPlus /> {t.rooms.createFirst}
             </button>
           )}
         </div>
@@ -147,11 +149,11 @@ export default function RoomsPage() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
                     <div className="device-metric">
-                      <div className="device-metric-label">Sensors</div>
+                      <div className="device-metric-label">{t.rooms.sensors}</div>
                       <div className="device-metric-value">{count}</div>
                     </div>
                     <div className="device-metric">
-                      <div className="device-metric-label">Threshold</div>
+                      <div className="device-metric-label">{t.rooms.threshold}</div>
                       <div className="device-metric-value">{room.threshold}<span className="device-metric-unit"> %</span></div>
                     </div>
                   </div>
@@ -159,7 +161,7 @@ export default function RoomsPage() {
                   {devicesInRoom.length > 0 && (
                     <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                        Assigned Sensors
+                        {t.rooms.assignedSensors}
                       </div>
                       {devicesInRoom.map(d => (
                         <div key={d.deviceId} style={{
@@ -185,23 +187,23 @@ export default function RoomsPage() {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">{editState ? 'Edit Room' : 'Create Room'}</span>
+              <span className="modal-title">{editState ? t.rooms.editModalTitle : t.rooms.addModalTitle}</span>
               <button className="btn-icon" onClick={() => setShowModal(false)}><IconX /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Room Name *</label>
+                  <label className="form-label">{t.rooms.nameLabel}</label>
                   <input
                     className="form-input"
-                    placeholder="e.g. Server Room A"
+                    placeholder={t.rooms.namePlaceholder}
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     autoFocus
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Alert Threshold (%)</label>
+                  <label className="form-label">{t.rooms.thresholdLabel}</label>
                   <input
                     className="form-input"
                     type="number"
@@ -211,7 +213,7 @@ export default function RoomsPage() {
                     onChange={e => setForm(f => ({ ...f, threshold: e.target.value }))}
                   />
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Trigger alerts when sensor value exceeds this threshold
+                    {t.rooms.thresholdDesc}
                   </div>
                 </div>
                 {formError && (
@@ -221,10 +223,10 @@ export default function RoomsPage() {
                 )}
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>{t.devices.cancel}</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? <span className="loading-spinner" /> : editState ? <IconEdit /> : <IconPlus />}
-                  {submitting ? 'Saving…' : editState ? 'Save Changes' : 'Create Room'}
+                  {submitting ? t.devices.saving : editState ? t.devices.saveBtn : t.rooms.createBtn}
                 </button>
               </div>
             </form>
