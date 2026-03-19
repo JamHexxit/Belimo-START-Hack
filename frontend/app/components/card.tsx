@@ -133,6 +133,20 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8, marginTop: 10 }}>
+          {/* Clean Health Status Metric */}
+          <div className="device-metric" style={{ borderLeft: `3px solid ${status === 'online' ? 'var(--status-online)' : 'var(--status-error)'}` }}>
+            <div className="device-metric-label">Health</div>
+            <div className="device-metric-value" style={{ 
+              fontSize: 16, 
+              color: status === 'online' ? 'var(--status-online)' : 'var(--status-error)' 
+            }}>
+              {status === 'checking' ? '...' : status === 'online' ? 'Online' : 'Offline'}
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+              Status Endpoint
+            </div>
+          </div>
+          {/* Dynamic Telemetry Fields */}
           {Array.from(fields.entries()).map(([field, data]) => (
               <div key={field} className="device-metric">
                 <div className="device-metric-label">{field.replace(/_/g, ' ')}</div>

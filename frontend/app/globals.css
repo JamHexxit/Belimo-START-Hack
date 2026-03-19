@@ -137,6 +137,8 @@ html, body {
   flex: 1;
   overflow: hidden;
   margin-left: var(--sidebar-width);
+  position: relative;
+  z-index: 1;
 }
 
 .page-content {
