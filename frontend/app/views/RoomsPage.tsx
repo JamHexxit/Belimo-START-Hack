@@ -127,7 +127,7 @@ export default function RoomsPage() {
             const count = getDeviceCount(room.roomId);
             const devicesInRoom = devices.filter(d => d.roomId === room.roomId);
             return (
-              <div className="card room-card" key={room.roomId} style={{ padding: 20, position: 'relative', overflow: 'hidden' }}>
+              <div className="card room-card" key={room.roomId} style={{ padding: 20, position: 'relative', overflow: 'hidden', borderRadius: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{room.name}</div>
