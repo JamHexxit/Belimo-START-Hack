@@ -118,24 +118,12 @@ export default function Navbar({ activePage }: NavbarProps) {
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           {showLangMenu && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-              background: 'var(--card-bg)', border: '1px solid var(--border)',
-              borderRadius: 6, overflow: 'hidden', zIndex: 200,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 100,
-            }}>
+            <div className="language-menu">
               {LANGUAGES.map(l => (
                 <button
                   key={l.code}
                   onClick={() => { setLanguage(l.code); setShowLangMenu(false); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    width: '100%', padding: '8px 14px',
-                    background: language === l.code ? 'var(--belimo-orange-faint, rgba(230,81,0,0.08))' : 'transparent',
-                    color: language === l.code ? 'var(--belimo-orange)' : 'var(--text-primary)',
-                    border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: language === l.code ? 600 : 400,
-                    textAlign: 'left',
-                  }}
+                  className={`language-menu-item ${language === l.code ? 'active' : ''}`}
                 >
                   <span style={{ fontSize: 15 }}>{l.flag}</span>
                   {l.label}

@@ -384,6 +384,45 @@ html, body {
   height: 14px;
 }
 
+.language-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 100px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  z-index: 200;
+  box-shadow: var(--shadow-hover);
+}
+
+.language-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.language-menu-item:hover {
+  background: var(--bg-input);
+}
+
+.language-menu-item.active {
+  background: var(--bg-input);
+  color: var(--belimo-orange);
+  font-weight: 600;
+}
+
 /* ============================
    CARDS
    ============================ */
