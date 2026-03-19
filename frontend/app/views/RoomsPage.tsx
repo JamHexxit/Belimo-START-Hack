@@ -109,7 +109,7 @@ export default function RoomsPage() {
       </div>
 
       {filteredRooms.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', padding: '60px 40px', backdropFilter: 'blur(8px)', boxShadow: 'var(--shadow-card)' }}>
           <IconHome />
           <div className="empty-state-title">{search ? 'No matching rooms' : 'No rooms yet'}</div>
           <div className="empty-state-desc">

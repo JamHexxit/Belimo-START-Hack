@@ -85,7 +85,7 @@ export default function DeviceManagerPage() {
 
       {/* Device Grid */}
       {filtered.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', padding: '60px 40px', backdropFilter: 'blur(8px)', boxShadow: 'var(--shadow-card)' }}>
           <IconEmpty />
           <div className="empty-state-title">{search ? 'No matching devices' : 'No devices yet'}</div>
           <div className="empty-state-desc">
