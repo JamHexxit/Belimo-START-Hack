@@ -88,7 +88,10 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
         const info = await getDeviceInfo(device.deviceId);
         setDeviceInfo(info);
       } catch {
-        addNotification('warning', 'Query Failed', `No telemetry for ${shortId(device.deviceId)}`);
+        addNotification('warning', 'Query Failed', `No telemetry for ${shortId(device.deviceId)}`, {
+          deviceId: device.deviceId,
+          placeId: device.placeId,
+        });
         setDeviceInfo({ data: [] });
       } finally {
         setLoadingData(false);
@@ -116,7 +119,10 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
     setDeleting(true);
     try {
       await deleteDevice(device.deviceId);
-      addNotification('success', 'Device Removed', `Device ${shortId(device.deviceId)} removed.`);
+      addNotification('success', 'Device Removed', `Device ${shortId(device.deviceId)} removed.`, {
+        deviceId: device.deviceId,
+        placeId: device.placeId,
+      });
       onDeleted();
     } catch {
       addNotification('error', 'Delete Failed', 'Could not remove the device.');
@@ -132,10 +138,16 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
     try {
       await updateDevice(device.deviceId, { placeId: newPlace || null });
       const placeName = newPlace ? places.find(p => p.placeId === newPlace)?.name ?? newPlace : 'No Place';
-      addNotification('success', 'Place Updated', `Device assigned to ${placeName}`);
+      addNotification('success', 'Place Updated', `Device assigned to ${placeName}`, {
+        deviceId: device.deviceId,
+        placeId: newPlace || null,
+      });
       await refreshDevices();
     } catch {
-      addNotification('error', 'Update Failed', 'Could not update place assignment.');
+      addNotification('error', 'Update Failed', 'Could not update place assignment.', {
+        deviceId: device.deviceId,
+        placeId: device.placeId,
+      });
     } finally {
       setUpdatingPlace(false);
     }

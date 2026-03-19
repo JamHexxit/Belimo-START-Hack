@@ -14,6 +14,10 @@ export interface Notification {
   message: string;
   timestamp: Date;
   read: boolean;
+  deviceId?: string;
+  placeId?: string | null;
+  buildingId?: string | null;
+  companyId?: string | null;
 }
 
 // ===== App Context =====
@@ -30,7 +34,7 @@ interface AppContextValue {
   setLanguage: (lang: Language) => void;
   refreshDevices: () => Promise<void>;
   refreshHierarchy: () => Promise<void>;
-  addNotification: (type: NotifType, title: string, message: string) => void;
+  addNotification: (type: NotifType, title: string, message: string, meta?: { deviceId?: string; placeId?: string | null; buildingId?: string | null; companyId?: string | null }) => void;
   markAllRead: () => void;
   clearNotification: (id: string) => void;
   unreadCount: number;
@@ -83,7 +87,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTheme(t => t === 'light' ? 'dark' : 'light');
   }, []);
 
-  const addNotification = useCallback((type: NotifType, title: string, message: string) => {
+  const addNotification = useCallback((type: NotifType, title: string, message: string, meta?: { deviceId?: string; placeId?: string | null; buildingId?: string | null; companyId?: string | null }) => {
     setNotifications(prev => {
       // Prevent duplicate identical unread notifications
       const isDuplicate = prev.some(n => n.title === title && n.message === message && !n.read);
@@ -96,6 +100,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         message,
         timestamp: new Date(),
         read: false,
+        deviceId: meta?.deviceId,
+        placeId: meta?.placeId ?? null,
+        buildingId: meta?.buildingId ?? null,
+        companyId: meta?.companyId ?? null,
       };
       return [notif, ...prev].slice(0, 50);
     });
@@ -165,7 +173,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
              notifiedStatusRef.current[device.deviceId] = true;
           } else if (!isOnline && previousOnlineStatus !== false) {
              // Went offline
-             addNotification('error', 'Device Offline', `Device "${device.name}" has lost connection.`);
+             const place = places.find(p => p.placeId === device.placeId);
+             const building = place ? buildings.find(b => b.buildingId === place.buildingId) : undefined;
+             const company = building ? companies.find(c => c.companyId === building.companyId) : undefined;
+             addNotification('error', 'Device Offline', `Device "${device.name}" has lost connection.`, {
+               deviceId: device.deviceId,
+               placeId: device.placeId,
+               buildingId: building?.buildingId ?? null,
+               companyId: company?.companyId ?? null,
+             });
              notifiedStatusRef.current[device.deviceId] = false;
           } else if (previousOnlineStatus === undefined) {
              // First time setting
@@ -183,8 +199,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               if ((info.health.status === 'error' || info.health.status === 'warning') && previousNotifiedStatus !== info.health.status) {
                 const type = info.health.status === 'error' ? 'error' : 'warning';
                 const title = info.health.status === 'error' ? 'Critical Malfunction' : 'Predictive Warning';
-                addNotification(type, title, `Device "${device.name}": ${info.health.message}`);
-                
+                const place = places.find(p => p.placeId === device.placeId);
+                const building = place ? buildings.find(b => b.buildingId === place.buildingId) : undefined;
+                const company = building ? companies.find(c => c.companyId === building.companyId) : undefined;
+                addNotification(type, title, `Device "${device.name}": ${info.health.message}`, {
+                  deviceId: device.deviceId,
+                  placeId: device.placeId,
+                  buildingId: building?.buildingId ?? null,
+                  companyId: company?.companyId ?? null,
+                });
+
                 // Mark as notified for this specific error/warning state
                 notifiedHealthRef.current[device.deviceId] = info.health.status;
               } else if (info.health.status === 'healthy' && previousNotifiedStatus && previousNotifiedStatus !== 'healthy') {

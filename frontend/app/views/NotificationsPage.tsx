@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useApp, Notification } from '../context/AppContext';
 import { useTranslation } from '../lib/i18n';
 
@@ -29,23 +30,64 @@ function formatTime(d: Date) {
 }
 
 export default function NotificationsPage() {
-  const { notifications, markAllRead, clearNotification, unreadCount } = useApp();
+  const { notifications, markAllRead, clearNotification, unreadCount, companies, buildings, places } = useApp();
   const t = useTranslation();
 
-  const byType = (type: string) => notifications.filter(n => n.type === type);
+  const [companyFilter, setCompanyFilter] = React.useState<string>('');
+  const [buildingFilter, setBuildingFilter] = React.useState<string>('');
+  const [placeFilter, setPlaceFilter] = React.useState<string>('');
+
+  const filteredNotifications = notifications.filter(n => {
+    if (companyFilter && n.companyId !== companyFilter) return false;
+    if (buildingFilter && n.buildingId !== buildingFilter) return false;
+    if (placeFilter && n.placeId !== placeFilter) return false;
+    return true;
+  });
+
+  const byType = (type: string) => filteredNotifications.filter(n => n.type === type);
+
+  const companyBuildings = buildings.filter(b => !companyFilter || b.companyId === companyFilter);
+  const buildingPlaces = places.filter(p => !buildingFilter || p.buildingId === buildingFilter);
 
   return (
     <div>
       <div className="page-header">
         <div>
           <div className="page-title">{t.notifications.title}</div>
-          <div className="page-subtitle">{notifications.length} {t.notifications.total} · {unreadCount} {t.notifications.unread}</div>
+          <div className="page-subtitle">{filteredNotifications.length}/{notifications.length} {t.notifications.total} · {unreadCount} {t.notifications.unread}</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {unreadCount > 0 && (
             <button className="btn btn-secondary" onClick={markAllRead}>{t.notifications.markAllRead}</button>
           )}
         </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
+          Company
+          <select value={companyFilter} onChange={e => { setCompanyFilter(e.target.value); setBuildingFilter(''); setPlaceFilter(''); }}>
+            <option value="">All Companies</option>
+            {companies.map(company => <option key={company.companyId} value={company.companyId}>{company.name}</option>)}
+          </select>
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
+          Building
+          <select value={buildingFilter} onChange={e => { setBuildingFilter(e.target.value); setPlaceFilter(''); }}>
+            <option value="">All Buildings</option>
+            {companyBuildings.map(building => <option key={building.buildingId} value={building.buildingId}>{building.name}</option>)}
+          </select>
+        </label>
+
+        <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
+          Room
+          <select value={placeFilter} onChange={e => setPlaceFilter(e.target.value)}>
+            <option value="">All Rooms</option>
+            {buildingPlaces.map(place => <option key={place.placeId} value={place.placeId}>{place.name}</option>)}
+          </select>
+        </label>
       </div>
 
       {/* Summary Chips */}
@@ -85,7 +127,7 @@ export default function NotificationsPage() {
               </tr>
             </thead>
             <tbody>
-              {notifications.map((n: Notification) => (
+              {filteredNotifications.map((n: Notification) => (
                 <tr key={n.id} style={{ opacity: n.read ? 0.6 : 1 }}>
                   <td>
                     <div style={{
