@@ -96,26 +96,28 @@ export default function NotificationsPage() {
                   </td>
                   <td>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{n.title}</div>
-                    {!n.read && (
-                      <span style={{
-                        display: 'inline-block',
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: 'var(--belimo-orange)',
-                        marginLeft: 6, verticalAlign: 'middle',
-                      }} />
-                    )}
                   </td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{n.message}</td>
                   <td style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap' }}>{formatTime(n.timestamp)}</td>
                   <td>
-                    <button
-                      className="btn-icon danger"
-                      style={{ width: 28, height: 28, borderRadius: 6 }}
-                      onClick={() => clearNotification(n.id)}
-                      title="Dismiss"
-                    >
-                      <IconTrash />
-                    </button>
+                    <div style={{ position: 'relative', width: 28, height: 28, display: 'inline-block' }}>
+                      <button
+                        className="btn-icon danger"
+                        style={{ width: 28, height: 28, borderRadius: 6 }}
+                        onClick={() => clearNotification(n.id)}
+                        title="Dismiss"
+                      >
+                        <IconTrash />
+                      </button>
+                      {!n.read && (
+                        <span style={{
+                          position: 'absolute', top: -3, right: -3,
+                          width: 7, height: 7, borderRadius: '50%',
+                          background: 'var(--belimo-orange)',
+                          pointerEvents: 'none',
+                        }} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

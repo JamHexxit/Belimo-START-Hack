@@ -64,26 +64,28 @@ export default function NotificationMenu({ onClose }: NotificationMenuProps) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                 <span className="notif-item-time">{timeAgo(n.timestamp)}</span>
-                <button
-                  className="btn-icon"
-                  style={{ width: 22, height: 22, padding: 2 }}
-                  onClick={() => clearNotification(n.id)}
-                >
-                  <IconX />
-                </button>
+                <div style={{ position: 'relative', width: 22, height: 22 }}>
+                  <button
+                    className="btn-icon"
+                    style={{ width: 22, height: 22, padding: 2 }}
+                    onClick={() => clearNotification(n.id)}
+                  >
+                    <IconX />
+                  </button>
+                  {!n.read && (
+                    <span style={{
+                      position: 'absolute',
+                      top: -3,
+                      right: -3,
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: 'var(--belimo-orange)',
+                      pointerEvents: 'none',
+                    }} />
+                  )}
+                </div>
               </div>
-              {!n.read && (
-                <span style={{
-                  position: 'absolute',
-                  right: 14,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 6,
-                  height: 6,
-                  background: 'var(--belimo-orange)',
-                  flexShrink: 0,
-                }} />
-              )}
             </div>
           ))
         )}
