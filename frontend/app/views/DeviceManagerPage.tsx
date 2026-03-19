@@ -113,7 +113,7 @@ export default function DeviceManagerPage() {
             </div>
             <form onSubmit={handleAdd}>
               <div className="modal-body">
-                <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--belimo-orange-light)', borderRadius: 8, fontSize: 12, color: 'var(--belimo-orange)', borderLeft: '3px solid var(--belimo-orange)' }}>
+                <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--belimo-orange-light)', fontSize: 12, color: 'var(--belimo-orange)', borderLeft: '3px solid var(--belimo-orange)' }}>
                   Connect a Belimo sensor via its InfluxDB data source.
                 </div>
                 <div className="form-group">
@@ -142,7 +142,7 @@ export default function DeviceManagerPage() {
                   </select>
                 </div>
                 {formError && (
-                  <div style={{ color: 'var(--status-error)', fontSize: 12, background: 'var(--status-error-bg)', padding: '8px 12px', borderRadius: 8 }}>
+                  <div style={{ color: 'var(--status-error)', fontSize: 12, background: 'var(--status-error-bg)', padding: '8px 12px' }}>
                     {formError}
                   </div>
                 )}

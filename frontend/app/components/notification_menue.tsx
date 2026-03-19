@@ -66,7 +66,7 @@ export default function NotificationMenu({ onClose }: NotificationMenuProps) {
                 <span className="notif-item-time">{timeAgo(n.timestamp)}</span>
                 <button
                   className="btn-icon"
-                  style={{ width: 22, height: 22, borderRadius: 4, padding: 2 }}
+                  style={{ width: 22, height: 22, padding: 2 }}
                   onClick={() => clearNotification(n.id)}
                 >
                   <IconX />
@@ -80,7 +80,6 @@ export default function NotificationMenu({ onClose }: NotificationMenuProps) {
                   transform: 'translateY(-50%)',
                   width: 6,
                   height: 6,
-                  borderRadius: '50%',
                   background: 'var(--belimo-orange)',
                   flexShrink: 0,
                 }} />

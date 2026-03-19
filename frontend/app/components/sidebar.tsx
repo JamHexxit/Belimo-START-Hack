@@ -5,6 +5,12 @@ import { useApp } from '../context/AppContext';
 
 type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
 
+// Detect light/dark mode for logo filter
+const useTheme = () => {
+  const { theme } = useApp();
+  return theme;
+};
+
 interface SidebarProps {
   activePage: Page;
   onNavigate: (page: Page) => void;
@@ -33,15 +39,10 @@ const IconBell = () => (
     <path d="M13.73 21a2 2 0 01-3.46 0" />
   </svg>
 );
-const IconSettings = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-  </svg>
-);
 
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const { devices, unreadCount } = useApp();
+  const theme = useTheme();
 
   const navItems = [
     { id: 'dashboard' as Page, label: 'Dashboard', icon: <IconDashboard /> },
@@ -59,7 +60,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
           alt="Belimo Logo"
           width={110}
           height={36}
-          style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+          style={{ objectFit: 'contain', filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }}
           priority
         />
       </div>
@@ -79,17 +80,12 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
           </button>
         ))}
 
-        <div className="sidebar-section-label" style={{ marginTop: 16 }}>System</div>
-        <button className="sidebar-nav-item">
-          <IconSettings />
-          <span>Settings</span>
-        </button>
       </nav>
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <div style={{ fontSize: 11, color: '#5a6070', padding: '4px 12px' }}>
-          <div style={{ fontWeight: 600, color: '#8b92a5', marginBottom: 2 }}>Sensor Monitor</div>
+        <div style={{ fontSize: 11, color: 'var(--sidebar-text-muted)', padding: '4px 12px' }}>
+          <div style={{ fontWeight: 600, color: 'var(--sidebar-text-secondary)', marginBottom: 2 }}>Sensor Monitor</div>
           <div>v1.0.0 · START Hack 2026</div>
         </div>
       </div>

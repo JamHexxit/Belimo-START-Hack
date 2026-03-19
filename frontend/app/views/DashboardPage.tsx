@@ -31,7 +31,6 @@ export default function DashboardPage() {
           ? 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.03))'
           : 'linear-gradient(135deg, rgba(239,68,68,0.10), rgba(239,68,68,0.03))',
         border: `1px solid ${systemOk ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.25)'}`,
-        borderRadius: 12,
         padding: '20px 24px',
         marginBottom: 28,
         display: 'flex',
@@ -41,7 +40,6 @@ export default function DashboardPage() {
         <div style={{
           width: 48,
           height: 48,
-          borderRadius: 12,
           background: systemOk ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
           display: 'flex',
           alignItems: 'center',
@@ -66,11 +64,10 @@ export default function DashboardPage() {
           fontSize: 12,
           fontWeight: 700,
           padding: '6px 12px',
-          borderRadius: 20,
           background: systemOk ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
           color: systemOk ? 'var(--status-online)' : 'var(--status-error)',
         }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+          <span style={{ width: 8, height: 8, background: 'currentColor', display: 'inline-block', animation: 'pulse 2s infinite' }} />
           {systemOk ? 'HEALTHY' : 'DEGRADED'}
         </div>
       </div>
@@ -125,7 +122,6 @@ export default function DashboardPage() {
                   gap: 10,
                   padding: '10px 12px',
                   background: 'var(--bg-primary)',
-                  borderRadius: 8,
                 }}>
                   <span style={{ color: 'var(--status-online)' }}><IconOnline /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -154,7 +150,6 @@ export default function DashboardPage() {
                   gap: 10,
                   padding: '10px 12px',
                   background: 'var(--bg-primary)',
-                  borderRadius: 8,
                   opacity: n.read ? 0.55 : 1,
                 }}>
                   <span style={{
