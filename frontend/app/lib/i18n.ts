@@ -20,7 +20,7 @@ export const translations = {
     sidebar: {
       dashboard: 'Dashboard',
       devices: 'Device Manager',
-      rooms: 'Rooms',
+      rooms: 'Locations',
       notifications: 'Notifications',
       monitor: 'Monitor'
     },
@@ -69,7 +69,7 @@ export const translations = {
       saving: 'Saving…'
     },
     rooms: {
-      title: 'Room Manager',
+      title: 'Location Manager',
       configured: 'configured',
       search: 'Search rooms…',
       addRoom: 'Add Room',
@@ -122,7 +122,7 @@ export const translations = {
     sidebar: {
       dashboard: 'Dashboard',
       devices: 'Gerätemanager',
-      rooms: 'Räume',
+      rooms: 'Standorte',
       notifications: 'Benachrichtigungen',
       monitor: 'Überwachen'
     },
@@ -171,7 +171,7 @@ export const translations = {
       saving: 'Speichern…'
     },
     rooms: {
-      title: 'Raummanager',
+      title: 'Standortmanager',
       configured: 'konfiguriert',
       search: 'Räume suchen…',
       addRoom: 'Raum hinzufügen',

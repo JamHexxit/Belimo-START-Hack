@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Device, Room, DeviceInfo, DeviceInfoResponse, getDeviceInfo, deleteDevice, updateDevice, isDeviceOnline } from '../lib/api';
+import { Device, Place, DeviceInfo, DeviceInfoResponse, getDeviceInfo, deleteDevice, updateDevice, isDeviceOnline } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import { useTranslation } from '../lib/i18n';
 
@@ -19,26 +19,26 @@ function shortId(id: string) { return id.slice(0, 8) + '…'; }
 
 interface DeviceCardProps {
   device: Device;
-  rooms: Room[];
+  places: Place[];
   onDeleted: () => void;
   onEdit?: (device: Device) => void;
 }
 
-export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceCardProps) {
+export default function DeviceCard({ device, places, onDeleted, onEdit }: DeviceCardProps) {
   const { addNotification, refreshDevices } = useApp();
   const t = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfoResponse | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(device.roomId || '');
-  const [updatingRoom, setUpdatingRoom] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState(device.placeId || '');
+  const [updatingPlace, setUpdatingPlace] = useState(false);
 
   // New state for dynamic status
   const [status, setStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [lastNotifiedStatus, setLastNotifiedStatus] = useState<'healthy' | 'warning' | 'error' | 'offline' | 'none'>('none');
 
-  const room = rooms.find(r => r.roomId === device.roomId);
+  const place = places.find(p => p.placeId === device.placeId);
 
   // ── Fetch device status on mount and interval
   useEffect(() => {
@@ -121,20 +121,20 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
     }
   };
 
-  // ── Update room (PATCH /api/devices/:id)
-  const handleRoomChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRoom = e.target.value;
-    setSelectedRoom(newRoom);
-    setUpdatingRoom(true);
+  // ── Update place (PATCH /api/devices/:id)
+  const handlePlaceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPlace = e.target.value;
+    setSelectedPlace(newPlace);
+    setUpdatingPlace(true);
     try {
-      await updateDevice(device.deviceId, { roomId: newRoom || null });
-      const roomName = newRoom ? rooms.find(r => r.roomId === newRoom)?.name ?? newRoom : 'No Room';
-      addNotification('success', 'Room Updated', `Device assigned to ${roomName}`);
+      await updateDevice(device.deviceId, { placeId: newPlace || null });
+      const placeName = newPlace ? places.find(p => p.placeId === newPlace)?.name ?? newPlace : 'No Place';
+      addNotification('success', 'Place Updated', `Device assigned to ${placeName}`);
       await refreshDevices();
     } catch {
-      addNotification('error', 'Update Failed', 'Could not update room assignment.');
+      addNotification('error', 'Update Failed', 'Could not update place assignment.');
     } finally {
-      setUpdatingRoom(false);
+      setUpdatingPlace(false);
     }
   };
 
@@ -249,23 +249,23 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
           </div>
         </div>
 
-        {/* Room Assignment — PATCH /api/devices/:id */}
+        {/* Place Assignment — PATCH /api/devices/:id */}
         <div style={{ marginBottom: 12 }}>
           <label className="form-label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-            Assign Room
-            {updatingRoom && <span className="loading-spinner" style={{ width: 10, height: 10 }} />}
+            Assign Place
+            {updatingPlace && <span className="loading-spinner" style={{ width: 10, height: 10 }} />}
           </label>
           <select
               className="form-select"
               style={{ fontSize: 12, padding: '6px 10px' }}
-              value={selectedRoom}
-              onChange={handleRoomChange}
+              value={selectedPlace}
+              onChange={handlePlaceChange}
               onClick={e => e.stopPropagation()}
-              disabled={updatingRoom}
+              disabled={updatingPlace}
           >
             <option value="">— Unassigned —</option>
-            {rooms.map(r => (
-                <option key={r.roomId} value={r.roomId}>{r.name}</option>
+            {places.map(p => (
+                <option key={p.placeId} value={p.placeId}>{p.name}</option>
             ))}
           </select>
         </div>
@@ -274,7 +274,7 @@ export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceC
         <div className="device-footer">
           <div className="device-room-tag">
             <IconHome />
-            {room ? room.name : t.devices.noRoom.replace('— ', '').replace(' —', '')}
+            {place ? place.name : t.devices.noRoom.replace('— ', '').replace(' —', '')}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {onEdit && (

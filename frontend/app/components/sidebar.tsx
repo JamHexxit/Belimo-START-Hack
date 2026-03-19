@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { useRef, useEffect, useState } from 'react';
 import { useTranslation } from '../lib/i18n';
 
-type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
+import { Page } from '../lib/types';
 
 // Detect light/dark mode for logo filter
 const useTheme = () => {
@@ -41,14 +41,56 @@ const IconBell = () => (
     <path d="M13.73 21a2 2 0 01-3.46 0" />
   </svg>
 );
+const IconCompany = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="22"/><line x1="15" y1="22" x2="15" y2="22"/><line x1="12" y1="18" x2="12" y2="18"/><line x1="8" y1="6" x2="8" y2="6"/><line x1="16" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/>
+  </svg>
+);
+const IconBuilding = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="10" width="20" height="12" rx="2"/><path d="M6 10V4a2 2 0 012-2h8a2 2 0 012 2v6"/>
+  </svg>
+);
+const IconPlace = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+const IconChevronRight = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+const IconPlus = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
 
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
-  const { devices, unreadCount } = useApp();
+  const { 
+    devices, unreadCount, 
+    companies, buildings, places,
+    selectedCompanyId, setSelectedCompanyId,
+    selectedBuildingId, setSelectedBuildingId,
+    selectedPlaceId, setSelectedPlaceId 
+  } = useApp();
   const theme = useTheme();
   const t = useTranslation();
 
   const navRef = useRef<HTMLElement>(null);
   const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!navRef.current) return;
@@ -64,8 +106,6 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   const navItems = [
     { id: 'dashboard' as Page, label: t.sidebar.dashboard, icon: <IconDashboard /> },
-    { id: 'devices' as Page, label: t.sidebar.devices, icon: <IconDevices />, badge: devices.length > 0 ? String(devices.length) : undefined },
-    { id: 'rooms' as Page, label: t.sidebar.rooms, icon: <IconRooms /> },
     { id: 'notifications' as Page, label: t.sidebar.notifications, icon: <IconBell />, badge: unreadCount > 0 ? String(unreadCount) : undefined },
   ];
 
@@ -92,7 +132,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="sidebar-nav" ref={navRef} style={{ position: 'relative' }}>
-        <div className="sidebar-section-label">{t.sidebar.monitor}</div>
+        <div className="sidebar-section-label">Overview</div>
         <div 
           style={{
             position: 'absolute',
@@ -114,6 +154,98 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
             {item.badge && <span className="sidebar-badge">{item.badge}</span>}
           </button>
         ))}
+
+        <div className="sidebar-section-label" style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Customers</span>
+          {(selectedCompanyId || selectedBuildingId || selectedPlaceId) && (
+            <button 
+              onClick={() => { setSelectedCompanyId(null); setSelectedBuildingId(null); setSelectedPlaceId(null); }}
+              style={{ background: 'none', border: 'none', color: 'var(--belimo-orange)', fontSize: 10, cursor: 'pointer', fontWeight: 600 }}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        
+        <div className="sidebar-hierarchy" style={{ padding: '0 8px', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {companies.map(company => (
+            <div key={company.companyId} className="sidebar-tree-node">
+              <div 
+                className={`sidebar-nav-item hierarchy-item ${selectedCompanyId === company.companyId && !selectedBuildingId ? 'active' : ''}`}
+                style={{ fontSize: 13, height: 32, paddingLeft: 8, gap: 4 }}
+                onClick={() => {
+                  setSelectedCompanyId(company.companyId);
+                  setSelectedBuildingId(null);
+                  setSelectedPlaceId(null);
+                  if (!expandedIds.has(company.companyId)) {
+                    setExpandedIds(prev => new Set(prev).add(company.companyId));
+                  }
+                  onNavigate('dashboard');
+                }}
+              >
+                <button 
+                  className="tree-toggle-btn"
+                  onClick={(e) => toggleExpand(company.companyId, e)}
+                  style={{ transform: expandedIds.has(company.companyId) ? 'rotate(90deg)' : 'none' }}
+                >
+                  <IconChevronRight />
+                </button>
+                <IconCompany />
+                <span className="tree-label">{company.name}</span>
+              </div>
+              
+              {expandedIds.has(company.companyId) && (
+                <div className="sidebar-tree-children" style={{ marginLeft: 16, borderLeft: '1px solid var(--border-subtle)' }}>
+                  {buildings.filter(b => b.companyId === company.companyId).map(building => (
+                    <div key={building.buildingId} className="sidebar-tree-node">
+                      <div 
+                        className={`sidebar-nav-item hierarchy-item ${selectedBuildingId === building.buildingId && !selectedPlaceId ? 'active' : ''}`}
+                        style={{ fontSize: 12, height: 28, paddingLeft: 8, gap: 4 }}
+                        onClick={() => {
+                          setSelectedBuildingId(building.buildingId);
+                          setSelectedPlaceId(null);
+                          if (!expandedIds.has(building.buildingId)) {
+                            setExpandedIds(prev => new Set(prev).add(building.buildingId));
+                          }
+                          onNavigate('dashboard');
+                        }}
+                      >
+                        <button 
+                          className="tree-toggle-btn"
+                          onClick={(e) => toggleExpand(building.buildingId, e)}
+                          style={{ transform: expandedIds.has(building.buildingId) ? 'rotate(90deg)' : 'none' }}
+                        >
+                          <IconChevronRight />
+                        </button>
+                        <IconBuilding />
+                        <span className="tree-label">{building.name}</span>
+                      </div>
+                      
+                      {expandedIds.has(building.buildingId) && (
+                        <div className="sidebar-tree-children" style={{ marginLeft: 16, borderLeft: '1px solid var(--border-subtle)' }}>
+                          {places.filter(p => p.buildingId === building.buildingId).map(place => (
+                            <button 
+                              key={place.placeId}
+                              className={`sidebar-nav-item hierarchy-item ${selectedPlaceId === place.placeId ? 'active' : ''}`}
+                              style={{ fontSize: 11, height: 24, paddingLeft: 12, gap: 8 }}
+                              onClick={() => {
+                                setSelectedPlaceId(place.placeId);
+                                onNavigate('dashboard');
+                              }}
+                            >
+                              <IconPlace />
+                              <span className="tree-label">{place.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
       </nav>
 

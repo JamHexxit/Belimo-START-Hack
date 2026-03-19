@@ -6,7 +6,7 @@ import { Language } from '../context/AppContext';
 import NotificationMenu from './notification_menue';
 import { useTranslation } from '../lib/i18n';
 
-type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
+import { Page } from '../lib/types';
 
 // Removed hardcoded PAGE_TITLES since we use translation hook inside the component
 
@@ -46,7 +46,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activePage }: NavbarProps) {
-  const { devices, unreadCount, theme, toggleTheme, refreshDevices, refreshRooms, language, setLanguage } = useApp();
+  const { devices, unreadCount, theme, toggleTheme, refreshDevices, refreshHierarchy, language, setLanguage } = useApp();
   const t = useTranslation();
   const [showNotifs, setShowNotifs] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,18 +55,16 @@ export default function Navbar({ activePage }: NavbarProps) {
   const langRef = useRef<HTMLDivElement>(null);
 
   const LANGUAGES: { code: Language; flag: string; label: string }[] = [
-    { code: 'en', flag: '🇬🇧', label: 'EN' },
-    { code: 'de', flag: '🇩🇪', label: 'DE' },
-    { code: 'fr', flag: '🇫🇷', label: 'FR' },
+    { code: 'en', flag: 'EN', label: 'English' },
+    { code: 'de', flag: 'DE', label: 'Deutsch' },
+    { code: 'fr', flag: 'FR', label: 'Français' },
   ];
   const activeLang = LANGUAGES.find(l => l.code === language)!;
 
   const info = {
     dashboard: { title: t.nav.dashboardTitle, subtitle: t.nav.dashboardSubtitle },
-    devices: { title: t.nav.devicesTitle, subtitle: t.nav.devicesSubtitle },
-    rooms: { title: t.nav.roomsTitle, subtitle: t.nav.roomsSubtitle },
     notifications: { title: t.nav.notificationsTitle, subtitle: t.nav.notificationsSubtitle },
-  }[activePage];
+  }[activePage as 'dashboard' | 'notifications'];
 
   const total = devices.length;
   const statusClass = total === 0 ? '' : 'online';
@@ -74,7 +72,7 @@ export default function Navbar({ activePage }: NavbarProps) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refreshDevices(), refreshRooms()]);
+    await Promise.all([refreshDevices(), refreshHierarchy()]);
     setTimeout(() => setRefreshing(false), 700);
   };
 
@@ -113,7 +111,7 @@ export default function Navbar({ activePage }: NavbarProps) {
             title="Change language"
             style={{ gap: 5, minWidth: 64 }}
           >
-            <span style={{ fontSize: 13 }}>{activeLang.flag}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 4px', border: '1px solid currentColor', borderRadius: 2 }}>{activeLang.flag}</span>
             {activeLang.label}
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
@@ -125,7 +123,7 @@ export default function Navbar({ activePage }: NavbarProps) {
                   onClick={() => { setLanguage(l.code); setShowLangMenu(false); }}
                   className={`language-menu-item ${language === l.code ? 'active' : ''}`}
                 >
-                  <span style={{ fontSize: 15 }}>{l.flag}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 4px', border: '1px solid currentColor', borderRadius: 2 }}>{l.flag}</span>
                   {l.label}
                   {language === l.code && (
                     <svg style={{ marginLeft: 'auto' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>

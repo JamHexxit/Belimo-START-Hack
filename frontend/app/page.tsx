@@ -6,12 +6,9 @@ import Navbar from './components/navbar';
 import ToastContainer from './components/notification';
 import ParticleBackground from './components/particle_background';
 import DashboardPage from './views/DashboardPage';
-import DeviceManagerPage from './views/DeviceManagerPage';
-import RoomsPage from './views/RoomsPage';
 import NotificationsPage from './views/NotificationsPage';
 import { AppProvider } from './context/AppContext';
-
-type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
+import { Page } from './lib/types';
 
 function AppShell() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
@@ -19,8 +16,6 @@ function AppShell() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard': return <DashboardPage onNavigate={setActivePage} />;
-      case 'devices': return <DeviceManagerPage />;
-      case 'rooms': return <RoomsPage />;
       case 'notifications': return <NotificationsPage />;
     }
   };

@@ -7,12 +7,25 @@ export interface Device {
   url: string;
   org: string;
   bucket: string;
-  roomId: string | null;
+  placeId: string | null;
 }
 
-export interface Room {
-  roomId: string;
+export interface Company {
+  companyId: string;
   name: string;
+}
+
+export interface Building {
+  buildingId: string;
+  name: string;
+  companyId: string;
+}
+
+export interface Place {
+  placeId: string;
+  name: string;
+  buildingId: string;
+  type: string;
   threshold: number;
 }
 
@@ -25,56 +38,111 @@ export interface DeviceInfo {
 }
 
 // =========================================================
-// ROOM ENDPOINTS
-// POST /api/rooms          → createRoom (also updates if roomId provided)
-// GET  /api/rooms          → getRooms
-// DELETE /api/rooms/:id   → deleteRoom
+// HIERARCHY ENDPOINTS
 // =========================================================
 
-export async function getRooms(): Promise<Room[]> {
-  const res = await fetch(`${BASE_URL}/api/rooms`);
-  if (!res.ok) throw new Error('Failed to fetch rooms');
+export async function getCompanies(): Promise<Company[]> {
+  const res = await fetch(`${BASE_URL}/api/companies`);
+  if (!res.ok) throw new Error('Failed to fetch companies');
   return res.json();
 }
 
-/** Create a new room (no roomId → auto-generated) */
-export async function createRoom(
-  name: string,
-  threshold = 0,
-): Promise<{ roomId: string; room: Room }> {
-  const res = await fetch(`${BASE_URL}/api/rooms`, {
+export async function createCompany(name: string): Promise<{ companyId: string }> {
+  const res = await fetch(`${BASE_URL}/api/companies`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, threshold }),
+    body: JSON.stringify({ name }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Failed to create room');
-  }
+  if (!res.ok) throw new Error('Failed to create company');
   return res.json();
 }
 
-/** Update an existing room by supplying its roomId */
-export async function updateRoom(
-  roomId: string,
-  name: string,
-  threshold = 0,
-): Promise<{ roomId: string; room: Room }> {
-  const res = await fetch(`${BASE_URL}/api/rooms`, {
+export async function updateCompany(companyId: string, name: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/companies/${companyId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error('Failed to update company');
+}
+
+export async function deleteCompany(companyId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/companies/${companyId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete company');
+}
+
+export async function getBuildings(): Promise<Building[]> {
+  const res = await fetch(`${BASE_URL}/api/buildings`);
+  if (!res.ok) throw new Error('Failed to fetch buildings');
+  return res.json();
+}
+
+export async function createBuilding(name: string, companyId: string): Promise<{ buildingId: string }> {
+  const res = await fetch(`${BASE_URL}/api/buildings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId, name, threshold }),
+    body: JSON.stringify({ name, companyId }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Failed to update room');
-  }
+  if (!res.ok) throw new Error('Failed to create building');
   return res.json();
 }
 
-export async function deleteRoom(roomId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/rooms/${roomId}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete room');
+export async function updateBuilding(buildingId: string, data: { name?: string; companyId?: string }): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/buildings/${buildingId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update building');
+}
+
+export async function deleteBuilding(buildingId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/buildings/${buildingId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete building');
+}
+
+export async function getPlaces(): Promise<Place[]> {
+  const res = await fetch(`${BASE_URL}/api/places`);
+  if (!res.ok) throw new Error('Failed to fetch places');
+  return res.json();
+}
+
+export async function createPlace(data: {
+  name: string;
+  buildingId: string;
+  type?: string;
+  threshold?: number;
+}): Promise<{ placeId: string; place: Place }> {
+  const res = await fetch(`${BASE_URL}/api/places`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to create place');
+  return res.json();
+}
+
+export async function updatePlace(
+  placeId: string,
+  data: {
+    name?: string;
+    buildingId?: string;
+    type?: string;
+    threshold?: number;
+  }
+): Promise<{ placeId: string; place: Place }> {
+  const res = await fetch(`${BASE_URL}/api/places/${placeId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update place');
+  return res.json();
+}
+
+export async function deletePlace(placeId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/places/${placeId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete place');
 }
 
 // =========================================================
@@ -97,7 +165,7 @@ export async function addDevice(data: {
   influxToken: string;
   org: string;
   bucket: string;
-  roomId?: string;
+  placeId?: string;
   name?: string;
 }): Promise<{ deviceId: string }> {
   const res = await fetch(`${BASE_URL}/api/devices`, {
@@ -116,7 +184,7 @@ export async function addDevice(data: {
 export async function updateDevice(
   deviceId: string,
   data: {
-    roomId?: string | null;
+    placeId?: string | null;
     name?: string;
     influxUrl?: string;
     influxToken?: string;

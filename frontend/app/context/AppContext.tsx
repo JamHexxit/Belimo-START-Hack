@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
-import { getDevices, getRooms, Device, Room } from '../lib/api';
+import { getDevices, getCompanies, getBuildings, getPlaces, Device, Company, Building, Place } from '../lib/api';
 
 // ===== Notification Types =====
 export type NotifType = 'info' | 'success' | 'warning' | 'error';
@@ -19,7 +19,9 @@ export interface Notification {
 // ===== App Context =====
 interface AppContextValue {
   devices: Device[];
-  rooms: Room[];
+  companies: Company[];
+  buildings: Building[];
+  places: Place[];
   notifications: Notification[];
   isLoading: boolean;
   theme: 'light' | 'dark';
@@ -27,22 +29,37 @@ interface AppContextValue {
   language: Language;
   setLanguage: (lang: Language) => void;
   refreshDevices: () => Promise<void>;
-  refreshRooms: () => Promise<void>;
+  refreshHierarchy: () => Promise<void>;
   addNotification: (type: NotifType, title: string, message: string) => void;
   markAllRead: () => void;
   clearNotification: (id: string) => void;
   unreadCount: number;
+
+  // New Selection State
+  selectedCompanyId: string | null;
+  setSelectedCompanyId: (id: string | null) => void;
+  selectedBuildingId: string | null;
+  setSelectedBuildingId: (id: string | null) => void;
+  selectedPlaceId: string | null;
+  setSelectedPlaceId: (id: string | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [language, setLanguage] = useState<Language>('en');
+
+  // Selection States
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
 
   // Apply theme to document
   useEffect(() => {
@@ -72,16 +89,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const data = await getDevices();
       setDevices(data);
     } catch {
-      addNotification('error', 'Connection Error', 'Could not reach the backend. Is the server running on port 4000?');
+      addNotification('error', 'Connection Error', 'Could not reach the backend.');
     }
   }, [addNotification]);
 
-  const refreshRooms = useCallback(async () => {
+  const refreshHierarchy = useCallback(async () => {
     try {
-      const data = await getRooms();
-      setRooms(data);
+      const [c, b, p] = await Promise.all([getCompanies(), getBuildings(), getPlaces()]);
+      setCompanies(c);
+      setBuildings(b);
+      setPlaces(p);
     } catch {
-      // silently fail for rooms
+      // fail silently
     }
   }, []);
 
@@ -98,24 +117,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
-      await Promise.all([refreshDevices(), refreshRooms()]);
+      await Promise.all([refreshDevices(), refreshHierarchy()]);
       setIsLoading(false);
     };
     init();
     const interval = setInterval(() => {
       refreshDevices();
-      refreshRooms();
+      refreshHierarchy();
     }, 30000);
     return () => clearInterval(interval);
-  }, [refreshDevices, refreshRooms]);
+  }, [refreshDevices, refreshHierarchy]);
 
   return (
     <AppContext.Provider value={{
-      devices, rooms, notifications, isLoading, theme, toggleTheme,
+      devices, companies, buildings, places, notifications, isLoading, theme, toggleTheme,
       language, setLanguage,
-      refreshDevices, refreshRooms, addNotification,
+      refreshDevices, refreshHierarchy, refreshRooms: refreshHierarchy, // Compatibility
+      addNotification,
       markAllRead, clearNotification, unreadCount,
-    }}>
+      selectedCompanyId, setSelectedCompanyId,
+      selectedBuildingId, setSelectedBuildingId,
+      selectedPlaceId, setSelectedPlaceId,
+      rooms: places, // Compatibility
+    } as any}>
       {children}
     </AppContext.Provider>
   );

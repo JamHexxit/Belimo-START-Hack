@@ -12,7 +12,10 @@ app.use(cors());
 // Move config path up one directory into '/config'
 const CONFIG_DIR = path.join(__dirname, '../config');
 const DEVICES_FILE = path.join(CONFIG_DIR, 'devices.json');
-const ROOMS_FILE = path.join(CONFIG_DIR, 'rooms.json');
+const COMPANIES_FILE = path.join(CONFIG_DIR, 'companies.json');
+const BUILDINGS_FILE = path.join(CONFIG_DIR, 'buildings.json');
+const PLACES_FILE = path.join(CONFIG_DIR, 'places.json');
+const ROOMS_FILE = path.join(CONFIG_DIR, 'rooms.json'); // Keep for migration
 const OFFLINE_MODE = process.env.OFFLINE_MODE === 'true';
 
 // Ensure the config directory exists before trying to read/write
@@ -21,10 +24,14 @@ if (!fs.existsSync(CONFIG_DIR)) {
 }
 
 // Memory Registries
-// Device Structure: Map<deviceId, { url, token, org, bucket, roomId, name, client, lastPosition, positionStagnantCount, mockSimulationState }>
+// Device Structure: Map<deviceId, { url, token, org, bucket, placeId, name, client, lastPosition, positionStagnantCount, mockSimulationState }>
 const deviceRegistry = new Map();
-// Room Structure: Map<roomId, { name, threshold, ...otherConfig }>
-const roomRegistry = new Map();
+// Company Structure: Map<companyId, { name }>
+const companyRegistry = new Map();
+// Building Structure: Map<buildingId, { name, companyId }>
+const buildingRegistry = new Map();
+// Place Structure: Map<placeId, { name, buildingId, type, threshold }>
+const placeRegistry = new Map();
 
 let mockSensorData = [];
 if (OFFLINE_MODE) {
@@ -46,22 +53,59 @@ if (OFFLINE_MODE) {
 }
 
 /**
- * --- ROOM HELPERS ---
+ * --- HIERARCHY HELPERS (Company, Building, Place) ---
  */
-function loadRooms() {
-    if (fs.existsSync(ROOMS_FILE)) {
-        const data = fs.readFileSync(ROOMS_FILE, 'utf8');
-        const rooms = JSON.parse(data);
-        for (const [roomId, config] of Object.entries(rooms)) {
-            roomRegistry.set(roomId, config);
-        }
-        console.log(`Loaded ${roomRegistry.size} rooms.`);
+
+function loadHierarchy() {
+    // 1. Load Companies
+    if (fs.existsSync(COMPANIES_FILE)) {
+        const data = JSON.parse(fs.readFileSync(COMPANIES_FILE, 'utf8'));
+        for (const [id, config] of Object.entries(data)) companyRegistry.set(id, config);
     }
+    // 2. Load Buildings
+    if (fs.existsSync(BUILDINGS_FILE)) {
+        const data = JSON.parse(fs.readFileSync(BUILDINGS_FILE, 'utf8'));
+        for (const [id, config] of Object.entries(data)) buildingRegistry.set(id, config);
+    }
+    // 3. Load Places (and migrate from rooms if needed)
+    if (fs.existsSync(PLACES_FILE)) {
+        const data = JSON.parse(fs.readFileSync(PLACES_FILE, 'utf8'));
+        for (const [id, config] of Object.entries(data)) placeRegistry.set(id, config);
+    } else if (fs.existsSync(ROOMS_FILE)) {
+        console.log("Migrating rooms.json to new hierarchy...");
+        const legacyRooms = JSON.parse(fs.readFileSync(ROOMS_FILE, 'utf8'));
+        
+        // Ensure a default company and building exist if needed for migration
+        let defaultCompanyId = 'default-company';
+        let defaultBuildingId = 'default-building';
+
+        if (!companyRegistry.has(defaultCompanyId)) {
+            companyRegistry.set(defaultCompanyId, { name: 'Initial Customer' });
+        }
+        if (!buildingRegistry.has(defaultBuildingId)) {
+            buildingRegistry.set(defaultBuildingId, { name: 'Initial Site', companyId: defaultCompanyId });
+        }
+
+        for (const [roomId, config] of Object.entries(legacyRooms)) {
+            placeRegistry.set(roomId, {
+                name: config.name,
+                buildingId: defaultBuildingId,
+                type: 'room',
+                threshold: config.threshold || 0
+            });
+        }
+        
+        saveHierarchy();
+        console.log(`Migrated ${placeRegistry.size} rooms to places.`);
+    }
+
+    console.log(`Loaded ${companyRegistry.size} companies, ${buildingRegistry.size} buildings, ${placeRegistry.size} places.`);
 }
 
-function saveRooms() {
-    const dataToSave = Object.fromEntries(roomRegistry);
-    fs.writeFileSync(ROOMS_FILE, JSON.stringify(dataToSave, null, 2), 'utf8');
+function saveHierarchy() {
+    fs.writeFileSync(COMPANIES_FILE, JSON.stringify(Object.fromEntries(companyRegistry), null, 2), 'utf8');
+    fs.writeFileSync(BUILDINGS_FILE, JSON.stringify(Object.fromEntries(buildingRegistry), null, 2), 'utf8');
+    fs.writeFileSync(PLACES_FILE, JSON.stringify(Object.fromEntries(placeRegistry), null, 2), 'utf8');
 }
 
 /**
@@ -73,7 +117,12 @@ function loadDevices() {
         const devices = JSON.parse(data);
 
         for (const [deviceId, config] of Object.entries(devices)) {
-            // Re-initialize the InfluxDB client for each loaded device
+            // Migration: roomId -> placeId
+            if (config.roomId && !config.placeId) {
+                config.placeId = config.roomId;
+                delete config.roomId;
+            }
+
             const client = new InfluxDB({ url: config.influxUrl, token: config.influxToken });
 
             deviceRegistry.set(deviceId, {
@@ -81,7 +130,6 @@ function loadDevices() {
                 client,
                 lastPosition: null,
                 positionStagnantCount: 0,
-                // Add a state object for offline simulations
                 mockSimulationState: { scenario: 'normal', tick: 0, setpoint: 100, feedback: 0 }
             });
             console.log(`Loaded device ${deviceId} mapping to ${config.influxUrl}`);
@@ -89,12 +137,15 @@ function loadDevices() {
     } 
     
     if (OFFLINE_MODE && deviceRegistry.size === 0) {
-        // Create dummy devices if offline and no config exists to test different scenarios
+        // Create dummy devices if offline and no config exists
         const dummyDevices = [
             { id: 'offline-healthy-1', name: 'Healthy Actuator', scenario: 'normal' },
             { id: 'offline-calcified-2', name: 'Calcified Actuator (Warning)', scenario: 'calcified' },
             { id: 'offline-jammed-3', name: 'Jammed Actuator (Error)', scenario: 'jammed' }
         ];
+
+        let defaultPlaceId = null;
+        if (placeRegistry.size > 0) defaultPlaceId = placeRegistry.keys().next().value;
 
         for (const d of dummyDevices) {
             deviceRegistry.set(d.id, {
@@ -102,7 +153,7 @@ function loadDevices() {
                 influxToken: 'dummy',
                 org: 'dummy',
                 bucket: 'dummy',
-                roomId: null,
+                placeId: defaultPlaceId,
                 name: d.name,
                 client: null,
                 lastPosition: null,
@@ -110,7 +161,6 @@ function loadDevices() {
                 mockSimulationState: { scenario: d.scenario, tick: 0, setpoint: 100, feedback: 0 }
             });
         }
-        console.log('Added 3 dummy devices for OFFLINE_MODE scenarios (Healthy, Warning, Error)');
     }
 }
 
@@ -122,71 +172,155 @@ function saveDevices() {
             influxToken: data.influxToken,
             org: data.org,
             bucket: data.bucket,
-            roomId: data.roomId, // Persist the assigned room
-            name: data.name // Persist the custom name
+            placeId: data.placeId,
+            name: data.name
         };
     }
     fs.writeFileSync(DEVICES_FILE, JSON.stringify(dataToSave, null, 2), 'utf8');
 }
 
 // Initialize data from config files on startup
-loadRooms();
+loadHierarchy();
 loadDevices();
 
 /**
  * ==========================================
- * ROOM ENDPOINTS
+ * HIERARCHY ENDPOINTS
  * ==========================================
  */
 
-// 1. Create or Update a Room
-app.post('/api/rooms', (req, res) => {
-    const { name, threshold, roomId: providedId } = req.body;
+// --- COMPANIES ---
+app.post('/api/companies', (req, res) => {
+    const { name, companyId: providedId } = req.body;
+    if (!name) return res.status(400).json({ error: 'Company name is required' });
+    const id = providedId || crypto.randomUUID();
+    companyRegistry.set(id, { name });
+    saveHierarchy();
+    res.json({ message: 'Company saved', companyId: id });
+});
 
-    if (!name) {
-        return res.status(400).json({ error: 'Room name is required' });
+app.patch('/api/companies/:companyId', (req, res) => {
+    const { companyId } = req.params;
+    const { name } = req.body;
+    if (!companyRegistry.has(companyId)) return res.status(404).json({ error: 'Company not found' });
+    if (name) companyRegistry.get(companyId).name = name;
+    saveHierarchy();
+    res.json({ message: 'Company updated' });
+});
+
+app.delete('/api/companies/:companyId', (req, res) => {
+    const { companyId } = req.params;
+    if (!companyRegistry.has(companyId)) return res.status(404).json({ error: 'Company not found' });
+    
+    // Cascaded delete
+    for (const [bid, b] of buildingRegistry.entries()) {
+        if (b.companyId === companyId) {
+            // Delete places in this building
+            for (const [pid, p] of placeRegistry.entries()) {
+                if (p.buildingId === bid) placeRegistry.delete(pid);
+            }
+            buildingRegistry.delete(bid);
+        }
+    }
+    companyRegistry.delete(companyId);
+    saveHierarchy();
+    res.json({ message: 'Company and all its locations deleted' });
+});
+
+app.get('/api/companies', (req, res) => {
+    res.json(Array.from(companyRegistry).map(([id, d]) => ({ companyId: id, ...d })));
+});
+
+// --- BUILDINGS ---
+app.post('/api/buildings', (req, res) => {
+    const { name, companyId, buildingId: providedId } = req.body;
+    if (!name || !companyId) return res.status(400).json({ error: 'Name and companyId required' });
+    const id = providedId || crypto.randomUUID();
+    buildingRegistry.set(id, { name, companyId });
+    saveHierarchy();
+    res.json({ message: 'Building saved', buildingId: id });
+});
+
+app.patch('/api/buildings/:buildingId', (req, res) => {
+    const { buildingId } = req.params;
+    const { name, companyId } = req.body;
+    if (!buildingRegistry.has(buildingId)) return res.status(404).json({ error: 'Building not found' });
+    const b = buildingRegistry.get(buildingId);
+    if (name) b.name = name;
+    if (companyId) b.companyId = companyId;
+    saveHierarchy();
+    res.json({ message: 'Building updated' });
+});
+
+app.delete('/api/buildings/:buildingId', (req, res) => {
+    const { buildingId } = req.params;
+    if (!buildingRegistry.has(buildingId)) return res.status(404).json({ error: 'Building not found' });
+    
+    // Cascaded delete places
+    for (const [pid, p] of placeRegistry.entries()) {
+        if (p.buildingId === buildingId) placeRegistry.delete(pid);
+    }
+    buildingRegistry.delete(buildingId);
+    saveHierarchy();
+    res.json({ message: 'Building and all its places deleted' });
+});
+
+app.get('/api/buildings', (req, res) => {
+    res.json(Array.from(buildingRegistry).map(([id, d]) => ({ buildingId: id, ...d })));
+});
+
+// --- PLACES (was Rooms) ---
+app.post('/api/places', (req, res) => {
+    const { name, buildingId, type, threshold, placeId: providedId } = req.body;
+
+    if (!name || !buildingId) {
+        return res.status(400).json({ error: 'Place name and buildingId are required' });
     }
 
-    const roomId = providedId || crypto.randomUUID();
-    const roomConfig = {
+    const id = providedId || crypto.randomUUID();
+    const config = {
         name,
-        threshold: threshold || 0 // Default threshold if not provided
+        buildingId,
+        type: type || 'room',
+        threshold: threshold || 0
     };
 
-    roomRegistry.set(roomId, roomConfig);
-    saveRooms();
-
-    console.log(`Room saved: ${roomId} (${name})`);
-    res.json({ message: 'Room saved successfully', roomId, room: roomConfig });
+    placeRegistry.set(id, config);
+    saveHierarchy();
+    res.json({ message: 'Place saved', placeId: id, place: config });
 });
 
-// 2. Get all Rooms
-app.get('/api/rooms', (req, res) => {
-    const rooms = [];
-    for (const [roomId, data] of roomRegistry.entries()) {
-        rooms.push({ roomId, ...data });
-    }
-    res.json(rooms);
+app.get('/api/places', (req, res) => {
+    res.json(Array.from(placeRegistry).map(([id, d]) => ({ placeId: id, ...d })));
 });
 
-// 3. Delete a Room
-app.delete('/api/rooms/:roomId', (req, res) => {
-    const { roomId } = req.params;
-    if (roomRegistry.has(roomId)) {
-        roomRegistry.delete(roomId);
-        saveRooms();
+app.patch('/api/places/:placeId', (req, res) => {
+    const { placeId } = req.params;
+    const { name, buildingId, type, threshold } = req.body;
+    if (!placeRegistry.has(placeId)) return res.status(404).json({ error: 'Place not found' });
+    const p = placeRegistry.get(placeId);
+    if (name !== undefined) p.name = name;
+    if (buildingId !== undefined) p.buildingId = buildingId;
+    if (type !== undefined) p.type = type;
+    if (threshold !== undefined) p.threshold = threshold;
+    saveHierarchy();
+    res.json({ message: 'Place updated' });
+});
 
-        // Optional: Detach this room from any assigned devices
+app.delete('/api/places/:placeId', (req, res) => {
+    const { placeId } = req.params;
+    if (placeRegistry.has(placeId)) {
+        placeRegistry.delete(placeId);
+        saveHierarchy();
+
+        // Detach from devices
         for (const [deviceId, device] of deviceRegistry.entries()) {
-            if (device.roomId === roomId) {
-                device.roomId = null;
-            }
+            if (device.placeId === placeId) device.placeId = null;
         }
         saveDevices();
-
-        res.json({ message: 'Room deleted successfully' });
+        res.json({ message: 'Place deleted successfully' });
     } else {
-        res.status(404).json({ error: 'Room not found' });
+        res.status(404).json({ error: 'Place not found' });
     }
 });
 
@@ -198,14 +332,14 @@ app.delete('/api/rooms/:roomId', (req, res) => {
 
 // Add a new Device
 app.post('/api/devices', (req, res) => {
-    const { influxUrl, influxToken, org, bucket, roomId, name } = req.body;
+    const { influxUrl, influxToken, org, bucket, placeId, name } = req.body;
 
     if (!influxUrl || !influxToken || !org || !bucket) {
         return res.status(400).json({ error: 'Missing required InfluxDB connection fields' });
     }
 
-    if (roomId && !roomRegistry.has(roomId)) {
-        return res.status(400).json({ error: 'Provided roomId does not exist' });
+    if (placeId && !placeRegistry.has(placeId)) {
+        return res.status(400).json({ error: 'Provided placeId does not exist' });
     }
 
     const deviceId = crypto.randomUUID();
@@ -216,35 +350,33 @@ app.post('/api/devices', (req, res) => {
         influxToken,
         org,
         bucket,
-        roomId: roomId || null,
+        placeId: placeId || null,
         name: name || `Device ${deviceId.substring(0, 8)}`,
-        client, // Cache the initialized client
+        client,
         lastPosition: null,
         positionStagnantCount: 0,
         mockSimulationState: { scenario: 'normal', tick: 0, setpoint: 100, feedback: 0 }
     });
 
     saveDevices();
-
-    console.log(`Manually added new device: ${deviceId} at ${influxUrl}`);
     res.json({ message: 'Device added successfully', deviceId });
 });
 
 // Assign/Change the Room, name, or connection details of an existing Device
 app.patch('/api/devices/:deviceId', (req, res) => {
     const { deviceId } = req.params;
-    const { roomId, name, influxUrl, influxToken, org, bucket } = req.body;
+    const { placeId, name, influxUrl, influxToken, org, bucket } = req.body;
 
     const device = deviceRegistry.get(deviceId);
     if (!device) {
         return res.status(404).json({ error: 'Device not found' });
     }
 
-    if (roomId !== undefined) {
-        if (roomId && !roomRegistry.has(roomId)) {
-            return res.status(400).json({ error: 'Provided roomId does not exist' });
+    if (placeId !== undefined) {
+        if (placeId && !placeRegistry.has(placeId)) {
+            return res.status(400).json({ error: 'Provided placeId does not exist' });
         }
-        device.roomId = roomId || null;
+        device.placeId = placeId || null;
     }
     
     if (name !== undefined) {
@@ -262,7 +394,7 @@ app.patch('/api/devices/:deviceId', (req, res) => {
     }
 
     saveDevices();
-    res.json({ message: 'Device updated successfully', deviceId, roomId: device.roomId, name: device.name });
+    res.json({ message: 'Device updated successfully', deviceId, placeId: device.placeId, name: device.name });
 });
 
 // Get all Devices
@@ -271,11 +403,11 @@ app.get('/api/devices', (req, res) => {
     for (const [deviceId, data] of deviceRegistry.entries()) {
         devices.push({
             deviceId,
-            name: data.name || `Device ${deviceId.substring(0, 8)}`, // fallback if old device has no name
+            name: data.name || `Device ${deviceId.substring(0, 8)}`,
             url: data.influxUrl,
             org: data.org,
             bucket: data.bucket,
-            roomId: data.roomId
+            placeId: data.placeId
         });
     }
     res.json(devices);
@@ -358,9 +490,9 @@ function analyzeDeviceHealth(deviceId, reading) {
     if (!device) return { status: 'healthy', message: 'Device missing.' };
 
     let threshold = 0;
-    if (device.roomId) {
-        const room = roomRegistry.get(device.roomId);
-        if (room) threshold = room.threshold;
+    if (device.placeId) {
+        const place = placeRegistry.get(device.placeId);
+        if (place) threshold = place.threshold;
     }
     
     // Default baseline if threshold is 0. Replace with your actual baseline calculation if needed.
@@ -558,4 +690,11 @@ app.delete('/api/devices/:deviceId', (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`Central Backend running on port ${PORT}`);
+}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`ERROR: Port ${PORT} is already in use. Please close the process using it (e.g., Brave or another node instance).`);
+        process.exit(1);
+    } else {
+        console.error('Server error:', err);
+    }
 });

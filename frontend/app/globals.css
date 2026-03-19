@@ -1139,3 +1139,50 @@ input[type="range"] {
   height: 4px;
   cursor: pointer;
 }
+
+/* ============================
+   SIDEBAR TREE HIERARCHY
+   ============================ */
+.sidebar-tree-node {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tree-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sidebar-text-muted);
+  transition: transform 0.2s ease, color 0.15s;
+  width: 24px;
+  height: 24px;
+}
+
+.tree-toggle-btn:hover {
+  color: var(--belimo-orange);
+}
+
+.tree-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hierarchy-item {
+  transition: padding 0.2s ease;
+}
+
+
+
+
