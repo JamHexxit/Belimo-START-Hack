@@ -1,5 +1,5 @@
 // API client — maps ALL backend endpoints in main.js
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export interface Device {
   deviceId: string;

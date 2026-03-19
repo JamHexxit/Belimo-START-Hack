@@ -68,7 +68,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const data = await getDevices();
       setDevices(data);
     } catch {
-      addNotification('error', 'Connection Error', 'Could not reach the backend. Is the server running on port 3000?');
+      addNotification('error', 'Connection Error', 'Could not reach the backend. Is the server running on port 4000?');
     }
   }, [addNotification]);
 
