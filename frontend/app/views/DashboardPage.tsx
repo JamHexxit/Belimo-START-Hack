@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { isDeviceOnline } from '../lib/api';
 
 const IconDevices = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
 const IconOnline = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>;
@@ -17,7 +19,29 @@ interface DashboardProps {
 export default function DashboardPage({ onNavigate }: DashboardProps) {
   const { devices, rooms, notifications } = useApp();
 
+  const [deviceStatuses, setDeviceStatuses] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let active = true;
+    const checkStatuses = async () => {
+      if (devices.length === 0) return;
+      const statuses: Record<string, boolean> = {};
+      await Promise.all(devices.map(async d => {
+        statuses[d.deviceId] = await isDeviceOnline(d.deviceId);
+      }));
+      if (active) {
+        setDeviceStatuses(statuses);
+      }
+    };
+    checkStatuses();
+    return () => { active = false; };
+  }, [devices]);
+
   const totalDevices = devices.length;
+  const onlineCount = Object.keys(deviceStatuses).length === devices.length 
+    ? Object.values(deviceStatuses).filter(Boolean).length 
+    : '...';
+
   const totalRooms = rooms.length;
   const unread = notifications.filter(n => !n.read).length;
   const errors = notifications.filter(n => n.type === 'error' && !n.read).length;
@@ -90,7 +114,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
         <div className="stat-card" onClick={() => onNavigate('devices')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon green"><IconOnline /></div>
           <div>
-            <div className="stat-value" style={{ color: 'var(--status-online)' }}>{totalDevices}</div>
+            <div className="stat-value" style={{ color: 'var(--status-online)' }}>{onlineCount}</div>
             <div className="stat-label">Online</div>
           </div>
         </div>
@@ -121,30 +145,36 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {devices.slice(0, 5).map(d => (
-                <div 
-                  key={d.deviceId}
-                  onClick={() => {
-                    window.location.hash = `#search-${encodeURIComponent(d.deviceId)}`;
-                    onNavigate('devices');
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '10px 12px',
-                    background: 'var(--bg-primary)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span style={{ color: 'var(--status-online)' }}><IconOnline /></span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Belimo Sensor</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{d.deviceId.slice(0, 12)}…</div>
+              {devices.slice(0, 5).map(d => {
+                const isOnline = deviceStatuses[d.deviceId];
+                const statusColor = isOnline === undefined ? 'var(--text-muted)' : (isOnline ? 'var(--status-online)' : 'var(--status-error)');
+                return (
+                  <div 
+                    key={d.deviceId}
+                    onClick={() => {
+                      window.location.hash = `#search-${encodeURIComponent(d.deviceId)}`;
+                      onNavigate('devices');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 12px',
+                      background: 'var(--bg-primary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ color: statusColor, display: 'flex' }}>
+                      {isOnline === undefined ? <span className="loading-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <IconOnline />}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>Belimo Sensor</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{d.deviceId.slice(0, 12)}…</div>
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{d.bucket}</span>
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{d.bucket}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
