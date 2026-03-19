@@ -8,7 +8,13 @@ const IconRoom = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const IconAlert = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 const IconActivity = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 
-export default function DashboardPage() {
+type Page = 'dashboard' | 'devices' | 'rooms' | 'notifications';
+
+interface DashboardProps {
+  onNavigate: (page: Page) => void;
+}
+
+export default function DashboardPage({ onNavigate }: DashboardProps) {
   const { devices, rooms, notifications } = useApp();
 
   const totalDevices = devices.length;
@@ -74,28 +80,28 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid-stats" style={{ marginBottom: 28 }}>
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => onNavigate('devices')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon orange"><IconDevices /></div>
           <div>
             <div className="stat-value">{totalDevices}</div>
             <div className="stat-label">Total Devices</div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => onNavigate('devices')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon green"><IconOnline /></div>
           <div>
             <div className="stat-value" style={{ color: 'var(--status-online)' }}>{totalDevices}</div>
             <div className="stat-label">Online</div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => onNavigate('rooms')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon blue"><IconRoom /></div>
           <div>
             <div className="stat-value">{totalRooms}</div>
             <div className="stat-label">Rooms</div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => onNavigate('notifications')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon red"><IconAlert /></div>
           <div>
             <div className="stat-value" style={{ color: errors > 0 ? 'var(--status-error)' : 'var(--text-primary)' }}>{unread}</div>

@@ -18,7 +18,7 @@ function AppShell() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard': return <DashboardPage />;
+      case 'dashboard': return <DashboardPage onNavigate={setActivePage} />;
       case 'devices': return <DeviceManagerPage />;
       case 'rooms': return <RoomsPage />;
       case 'notifications': return <NotificationsPage />;
