@@ -480,6 +480,36 @@ html, body {
   transform: translateY(-1px);
 }
 
+/* ============================
+   ROOM CARDS
+   ============================ */
+.room-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.room-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--status-online);
+}
+
+.room-card:hover {
+  border-left: 2px solid var(--belimo-orange);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
 .device-header {
   display: flex;
   align-items: flex-start;

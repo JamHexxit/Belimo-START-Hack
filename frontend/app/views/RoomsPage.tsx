@@ -127,11 +127,8 @@ export default function RoomsPage() {
             const count = getDeviceCount(room.roomId);
             const devicesInRoom = devices.filter(d => d.roomId === room.roomId);
             return (
-              <div className="card" key={room.roomId} style={{ position: 'relative', overflow: 'hidden', padding: 0 }}>
-                {/* Orange top accent */}
-                <div style={{ height: 3, background: 'var(--belimo-orange)' }} />
-                <div style={{ padding: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div className="card room-card" key={room.roomId} style={{ padding: 20, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{room.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: 2 }}>{room.roomId.slice(0, 14)}…</div>
@@ -177,7 +174,6 @@ export default function RoomsPage() {
                       ))}
                     </div>
                   )}
-                </div>
               </div>
             );
           })}
