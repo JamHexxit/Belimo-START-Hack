@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
-import { getDevices, getCompanies, getBuildings, getPlaces, Device, Company, Building, Place } from '../lib/api';
+import React, { createContext, useContext, useCallback, useEffect, useState, useRef } from 'react';
+import { getDevices, getCompanies, getBuildings, getPlaces, getDeviceInfo, isDeviceOnline, Device, Company, Building, Place } from '../lib/api';
 
 // ===== Notification Types =====
 export type NotifType = 'info' | 'success' | 'warning' | 'error';
@@ -42,6 +42,10 @@ interface AppContextValue {
   setSelectedBuildingId: (id: string | null) => void;
   selectedPlaceId: string | null;
   setSelectedPlaceId: (id: string | null) => void;
+
+  // Background Health & Status State
+  deviceHealth: Record<string, { status: string; message: string }>;
+  deviceStatuses: Record<string, boolean>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -55,6 +59,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [language, setLanguage] = useState<Language>('en');
+
+  const [deviceHealth, setDeviceHealth] = useState<Record<string, { status: string; message: string }>>({});
+  const [deviceStatuses, setDeviceStatuses] = useState<Record<string, boolean>>({});
+  
+  // Keep track of which notifications have been triggered per device so we don't spam
+  const notifiedHealthRef = useRef<Record<string, string>>({});
+  const notifiedStatusRef = useRef<Record<string, boolean>>({});
 
   // Selection States
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -73,15 +84,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addNotification = useCallback((type: NotifType, title: string, message: string) => {
-    const notif: Notification = {
-      id: Date.now().toString() + Math.random().toString(36).slice(2),
-      type,
-      title,
-      message,
-      timestamp: new Date(),
-      read: false,
-    };
-    setNotifications(prev => [notif, ...prev].slice(0, 50));
+    setNotifications(prev => {
+      // Prevent duplicate identical unread notifications
+      const isDuplicate = prev.some(n => n.title === title && n.message === message && !n.read);
+      if (isDuplicate) return prev;
+
+      const notif: Notification = {
+        id: Date.now().toString() + Math.random().toString(36).slice(2),
+        type,
+        title,
+        message,
+        timestamp: new Date(),
+        read: false,
+      };
+      return [notif, ...prev].slice(0, 50);
+    });
   }, []);
 
   const refreshDevices = useCallback(async () => {
@@ -89,9 +106,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const data = await getDevices();
       setDevices(data);
     } catch {
-      addNotification('error', 'Connection Error', 'Could not reach the backend.');
+      // Silent fail on interval
     }
-  }, [addNotification]);
+  }, []);
 
   const refreshHierarchy = useCallback(async () => {
     try {
@@ -105,7 +122,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const markAllRead = useCallback(() => {
-    setNotifications([]);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
   const clearNotification = useCallback((id: string) => {
@@ -128,17 +145,89 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [refreshDevices, refreshHierarchy]);
 
+  // Background Health Polling
+  useEffect(() => {
+    if (devices.length === 0) return;
+
+    let active = true;
+    const pollHealth = async () => {
+      const newHealth: Record<string, { status: string; message: string }> = {};
+      const newStatuses: Record<string, boolean> = {};
+      
+      await Promise.all(devices.map(async (device) => {
+        try {
+          const isOnline = await isDeviceOnline(device.deviceId);
+          newStatuses[device.deviceId] = isOnline;
+
+          const previousOnlineStatus = notifiedStatusRef.current[device.deviceId];
+          if (isOnline && previousOnlineStatus === false) {
+             // Recovered online
+             notifiedStatusRef.current[device.deviceId] = true;
+          } else if (!isOnline && previousOnlineStatus !== false) {
+             // Went offline
+             addNotification('error', 'Device Offline', `Device "${device.name}" has lost connection.`);
+             notifiedStatusRef.current[device.deviceId] = false;
+          } else if (previousOnlineStatus === undefined) {
+             // First time setting
+             notifiedStatusRef.current[device.deviceId] = isOnline;
+          }
+
+          if (isOnline) {
+            const info = await getDeviceInfo(device.deviceId);
+            if (info && info.health && active) {
+              newHealth[device.deviceId] = info.health;
+
+              const previousNotifiedStatus = notifiedHealthRef.current[device.deviceId];
+              
+              // Trigger global notification if needed and if it hasn't been triggered yet
+              if ((info.health.status === 'error' || info.health.status === 'warning') && previousNotifiedStatus !== info.health.status) {
+                const type = info.health.status === 'error' ? 'error' : 'warning';
+                const title = info.health.status === 'error' ? 'Critical Malfunction' : 'Predictive Warning';
+                addNotification(type, title, `Device "${device.name}": ${info.health.message}`);
+                
+                // Mark as notified for this specific error/warning state
+                notifiedHealthRef.current[device.deviceId] = info.health.status;
+              } else if (info.health.status === 'healthy' && previousNotifiedStatus && previousNotifiedStatus !== 'healthy') {
+                // If it recovered, reset the tracking so it can notify again if it fails later
+                 notifiedHealthRef.current[device.deviceId] = 'healthy';
+              }
+            }
+          }
+        } catch (e) {
+            // Ignore offline devices for this specific background check so we don't spam errors
+            newStatuses[device.deviceId] = false;
+        }
+      }));
+
+      if (active) {
+        setDeviceHealth(newHealth);
+        setDeviceStatuses(newStatuses);
+      }
+    };
+
+    pollHealth(); // Run immediately
+
+    // Poll every 5 seconds to catch live offline simulation changes quickly
+    const interval = setInterval(pollHealth, 5000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [devices, addNotification]);
+
   return (
     <AppContext.Provider value={{
       devices, companies, buildings, places, notifications, isLoading, theme, toggleTheme,
       language, setLanguage,
-      refreshDevices, refreshHierarchy, refreshRooms: refreshHierarchy, // Compatibility
+      refreshDevices, refreshHierarchy,
       addNotification,
       markAllRead, clearNotification, unreadCount,
       selectedCompanyId, setSelectedCompanyId,
       selectedBuildingId, setSelectedBuildingId,
       selectedPlaceId, setSelectedPlaceId,
-      rooms: places, // Compatibility
+      deviceHealth,
+      deviceStatuses
     } as any}>
       {children}
     </AppContext.Provider>

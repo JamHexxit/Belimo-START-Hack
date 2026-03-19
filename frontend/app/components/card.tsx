@@ -25,7 +25,7 @@ interface DeviceCardProps {
 }
 
 export default function DeviceCard({ device, places, onDeleted, onEdit }: DeviceCardProps) {
-  const { addNotification, refreshDevices } = useApp();
+  const { addNotification, refreshDevices, deviceHealth } = useApp();
   const t = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfoResponse | null>(null);
@@ -39,6 +39,7 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
   const [lastNotifiedStatus, setLastNotifiedStatus] = useState<'healthy' | 'warning' | 'error' | 'offline' | 'none'>('none');
 
   const place = places.find(p => p.placeId === device.placeId);
+  const healthStatus = deviceHealth[device.deviceId]; // Read global health
 
   // ── Fetch device status on mount and interval
   useEffect(() => {
@@ -52,7 +53,6 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
           setStatus(newStatus);
           
           if (newStatus === 'offline' && lastNotifiedStatus !== 'offline') {
-            addNotification('error', 'Device Offline', `Device "${device.name}" has lost connection.`);
             setLastNotifiedStatus('offline');
           } else if (newStatus === 'online' && lastNotifiedStatus === 'offline') {
             setLastNotifiedStatus('healthy'); // Reset on recovery
@@ -62,7 +62,6 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
         if (isMounted) {
           setStatus('offline');
           if (lastNotifiedStatus !== 'offline') {
-            addNotification('error', 'Device Offline', `Device "${device.name}" connection error.`);
             setLastNotifiedStatus('offline');
           }
         }
@@ -79,23 +78,15 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
       isMounted = false;
       clearInterval(interval);
     };
-  }, [device.deviceId]);
+  }, [device.deviceId, lastNotifiedStatus]);
 
-  // ── Fetch last telemetry (GET /api/devices/:id/getInformations)
+  // Expand logic just fetches live data for the panel, health logic is global now
   const handleExpandToggle = async () => {
     if (!expanded && !deviceInfo) {
       setLoadingData(true);
       try {
         const info = await getDeviceInfo(device.deviceId);
         setDeviceInfo(info);
-
-        // One-time health notification
-        if (info.health && info.health.status === 'error' && lastNotifiedStatus !== 'error') {
-          addNotification('error', 'Critical Device Error', `Device "${device.name}": ${info.health.message}`);
-          setLastNotifiedStatus('error');
-        } else if (info.health && info.health.status === 'healthy' && lastNotifiedStatus === 'error') {
-          setLastNotifiedStatus('healthy'); // Reset on recovery
-        }
       } catch {
         addNotification('warning', 'Query Failed', `No telemetry for ${shortId(device.deviceId)}`);
         setDeviceInfo({ data: [] });
@@ -105,6 +96,18 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
     }
     setExpanded(v => !v);
   };
+
+  // Keep device info updated if panel is open
+  useEffect(() => {
+    if (!expanded) return;
+    const interval = setInterval(async () => {
+      try {
+        const info = await getDeviceInfo(device.deviceId);
+        setDeviceInfo(info);
+      } catch (e) {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [expanded, device.deviceId]);
 
   // ── Delete device (DELETE /api/devices/:id)
   const handleDelete = async (e: React.MouseEvent) => {
@@ -158,7 +161,7 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8, marginTop: 10 }}>
           {/* Detailed Error Block if status is error */}
-          {deviceInfo.health && deviceInfo.health.status === 'error' && (
+          {healthStatus && healthStatus.status === 'error' && (
             <div style={{ 
               gridColumn: '1 / -1', 
               padding: '12px 16px', 
@@ -176,26 +179,26 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
                  <IconAlert /> <span>Critical Malfunction Detected</span>
               </div>
               <div style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-secondary)' }}>
-                {deviceInfo.health.message}
+                {healthStatus.message}
               </div>
             </div>
           )}
 
           {/* Clean Health Status Metric */}
-          {deviceInfo.health && (
+          {healthStatus && (
             <div className="device-metric" style={{ 
-              borderLeft: `3px solid ${deviceInfo.health.status === 'healthy' ? 'var(--status-online)' : deviceInfo.health.status === 'warning' ? 'var(--status-warning)' : 'var(--status-error)'}`,
-              background: deviceInfo.health.status === 'error' ? 'var(--status-error-bg)' : undefined
+              borderLeft: `3px solid ${healthStatus.status === 'healthy' ? 'var(--status-online)' : healthStatus.status === 'warning' ? 'var(--status-warning)' : 'var(--status-error)'}`,
+              background: healthStatus.status === 'error' ? 'var(--status-error-bg)' : undefined
             }}>
               <div className="device-metric-label">Health</div>
               <div className="device-metric-value" style={{ 
                 fontSize: 14, 
-                color: deviceInfo.health.status === 'healthy' ? 'var(--status-online)' : deviceInfo.health.status === 'warning' ? 'var(--status-warning)' : 'var(--status-error)' 
+                color: healthStatus.status === 'healthy' ? 'var(--status-online)' : healthStatus.status === 'warning' ? 'var(--status-warning)' : 'var(--status-error)' 
               }}>
-                {deviceInfo.health.status.charAt(0).toUpperCase() + deviceInfo.health.status.slice(1)}
+                {healthStatus.status.charAt(0).toUpperCase() + healthStatus.status.slice(1)}
               </div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={deviceInfo.health.message}>
-                {deviceInfo.health.message}
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={healthStatus.message}>
+                {healthStatus.message}
               </div>
             </div>
           )}
@@ -219,9 +222,17 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
 
   // Determine the display string for the status badge
   const statusText = status === 'checking' ? 'Checking...' : status === 'online' ? 'Online' : 'Offline';
+  
+  // Decide overall card border color
+  let cardClass = `device-card ${status === 'checking' ? 'offline' : status}`;
+  let customBorder = undefined;
+  if (healthStatus && status === 'online') {
+      if (healthStatus.status === 'error') customBorder = 'var(--status-error)';
+      else if (healthStatus.status === 'warning') customBorder = 'var(--status-warning)';
+  }
 
   return (
-      <div className={`device-card ${status === 'checking' ? 'offline' : status}`}>
+      <div className={cardClass} style={customBorder ? { borderColor: customBorder, boxShadow: `0 4px 12px ${customBorder}20` } : undefined}>
         {/* Header */}
         <div className="device-header">
           <div>
@@ -297,7 +308,7 @@ export default function DeviceCard({ device, places, onDeleted, onEdit }: Device
         {expanded && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
               <div className="section-title" style={{ fontSize: 10, marginBottom: 6 }}>
-                Live Telemetry · last 10 min
+                Live Telemetry
               </div>
               {renderTelemetry()}
               <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all' }}>

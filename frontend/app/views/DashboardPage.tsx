@@ -15,7 +15,8 @@ import { PortfolioView } from './PortfolioView';
 const IconDevices = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
 const IconOnline = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>;
 const IconRoom = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
-const IconAlert = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+const IconAlert = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+const IconWarning = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
 const IconActivity = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 const IconEdit = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IconTrash = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>;
@@ -40,7 +41,9 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
     selectedCompanyId, setSelectedCompanyId,
     selectedBuildingId, setSelectedBuildingId,
     selectedPlaceId, setSelectedPlaceId,
-    companies, buildings, refreshHierarchy, refreshDevices
+    companies, buildings, refreshHierarchy, refreshDevices,
+    deviceHealth, // <--- use the global health state
+    deviceStatuses // <--- use the global status state
   } = useApp();
   const t = useTranslation();
 
@@ -58,24 +61,6 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
   );
   const filteredPlaces = places.filter(p => p.buildingId === selectedBuildingId);
   const filteredBuildings = buildings.filter(b => b.companyId === selectedCompanyId);
-
-  const [deviceStatuses, setDeviceStatuses] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    let active = true;
-    const checkStatuses = async () => {
-      if (filteredDevices.length === 0) return;
-      const statuses: Record<string, boolean> = {};
-      await Promise.all(filteredDevices.map(async d => {
-        statuses[d.deviceId] = await isDeviceOnline(d.deviceId);
-      }));
-      if (active) {
-        setDeviceStatuses(statuses);
-      }
-    };
-    checkStatuses();
-    return () => { active = false; };
-  }, [filteredDevices]);
 
   const handleAdd = async () => {
     if (!newName.trim() || !activeModal) return;
@@ -186,27 +171,52 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
     }
 
     const online = levelDevices.filter(d => deviceStatuses[d.deviceId]).length;
+    
+    // Count alerts directly from deviceHealth map rather than generic notifications
+    let errorCount = 0;
+    let warningCount = 0;
+    levelDevices.forEach(d => {
+        const h = deviceHealth[d.deviceId];
+        if (h) {
+            if (h.status === 'error') errorCount++;
+            if (h.status === 'warning') warningCount++;
+        }
+    });
+
     return {
       total: levelDevices.length,
       online: Object.keys(deviceStatuses).length > 0 ? online : '...',
-      alerts: notifications.filter(n => !n.read && n.type === 'error').length
+      errorCount,
+      warningCount
     };
   };
 
   const stats = getLevelStats();
-
-  const totalDevices = filteredDevices.length;
-  const onlineCount = Object.keys(deviceStatuses).length === filteredDevices.length 
-    ? Object.values(deviceStatuses).filter(Boolean).length 
-    : '...';
-
-  const totalRooms = filteredPlaces.length;
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const criticalErrors = notifications.filter(n => n.type === 'error' && !n.read).length;
   
   const currentCompany = companies.find(c => c.companyId === selectedCompanyId);
   const currentBuilding = buildings.find(b => b.buildingId === selectedBuildingId);
   const currentPlace = places.find(p => p.placeId === selectedPlaceId);
+
+  // Helper to render health icons on cards
+  const renderCardHealth = (deviceIdList: string[]) => {
+      let e = 0;
+      let w = 0;
+      deviceIdList.forEach(id => {
+          const h = deviceHealth[id];
+          if (h) {
+              if (h.status === 'error') e++;
+              if (h.status === 'warning') w++;
+          }
+      });
+      
+      if (e === 0 && w === 0) return null;
+      return (
+          <div style={{ display: 'flex', gap: 6, position: 'absolute', top: 12, left: 12 }}>
+              {e > 0 && <span style={{ background: 'var(--status-error-bg)', color: 'var(--status-error)', padding: '2px 6px', borderRadius: 4, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700 }}><IconAlert /> {e}</span>}
+              {w > 0 && <span style={{ background: 'var(--status-warning-bg)', color: 'var(--status-warning)', padding: '2px 6px', borderRadius: 4, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700 }}><IconWarning /> {w}</span>}
+          </div>
+      );
+  };
 
   if (!selectedCompanyId && !selectedBuildingId && !selectedPlaceId) {
     return <PortfolioView />;
@@ -271,9 +281,15 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
           </div>
           <div className="stat-card">
             <div className="stat-icon red"><IconAlert /></div>
-            <div>
-              <div className="stat-value" style={{ color: 'var(--status-error)' }}>{stats.alerts}</div>
-              <div className="stat-label">Alerts</div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div>
+                <div className="stat-value" style={{ color: 'var(--status-error)' }}>{stats.errorCount}</div>
+                <div className="stat-label">Critical</div>
+              </div>
+              <div>
+                <div className="stat-value" style={{ color: 'var(--status-warning)' }}>{stats.warningCount}</div>
+                <div className="stat-label">Warnings</div>
+              </div>
             </div>
           </div>
         </div>
@@ -282,17 +298,24 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
       {/* 1. Company Selection */}
       {!selectedCompanyId && (
         <div className="selection-grid">
-           {companies.map(c => (
-              <div key={c.companyId} className="selection-card" onClick={() => setSelectedCompanyId(c.companyId)}>
-                <div className="selection-actions">
-                  <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setActiveModal({ type: 'company', mode: 'edit', id: c.companyId }); setNewName(c.name); }}><IconEdit /></button>
-                  <button className="btn-icon delete" onClick={(e) => { e.stopPropagation(); handleDelete('company', c.companyId, c.name); }}><IconTrash /></button>
-                </div>
-                <div className="selection-icon"><IconCompany /></div>
-                <div className="selection-name">{c.name}</div>
-                <div className="selection-meta">Buildings: {buildings.filter(b => b.companyId === c.companyId).length}</div>
-              </div>
-           ))}
+           {companies.map(c => {
+               const cB = buildings.filter(b => b.companyId === c.companyId).map(b=>b.buildingId);
+               const cP = places.filter(p => cB.includes(p.buildingId)).map(p=>p.placeId);
+               const cD = devices.filter(d => d.placeId && cP.includes(d.placeId)).map(d=>d.deviceId);
+               
+               return (
+                  <div key={c.companyId} className="selection-card" onClick={() => setSelectedCompanyId(c.companyId)}>
+                    {renderCardHealth(cD)}
+                    <div className="selection-actions">
+                      <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setActiveModal({ type: 'company', mode: 'edit', id: c.companyId }); setNewName(c.name); }}><IconEdit /></button>
+                      <button className="btn-icon delete" onClick={(e) => { e.stopPropagation(); handleDelete('company', c.companyId, c.name); }}><IconTrash /></button>
+                    </div>
+                    <div className="selection-icon"><IconCompany /></div>
+                    <div className="selection-name">{c.name}</div>
+                    <div className="selection-meta">Buildings: {buildings.filter(b => b.companyId === c.companyId).length}</div>
+                  </div>
+              )
+           })}
            <div className="selection-card add" onClick={() => setActiveModal({ type: 'company', mode: 'add' })}>
               <div className="selection-icon">+</div>
               <div className="selection-name">Add Customer</div>
@@ -303,17 +326,23 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
       {/* 2. Building Selection */}
       {selectedCompanyId && !selectedBuildingId && (
         <div className="selection-grid">
-           {filteredBuildings.map(b => (
-              <div key={b.buildingId} className="selection-card" onClick={() => setSelectedBuildingId(b.buildingId)}>
-                <div className="selection-actions">
-                  <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setActiveModal({ type: 'building', mode: 'edit', id: b.buildingId }); setNewName(b.name); }}><IconEdit /></button>
-                  <button className="btn-icon delete" onClick={(e) => { e.stopPropagation(); handleDelete('building', b.buildingId, b.name); }}><IconTrash /></button>
-                </div>
-                <div className="selection-icon"><IconBuilding /></div>
-                <div className="selection-name">{b.name}</div>
-                <div className="selection-meta">Places: {places.filter(p => p.buildingId === b.buildingId).length}</div>
-              </div>
-           ))}
+           {filteredBuildings.map(b => {
+               const bP = places.filter(p => p.buildingId === b.buildingId).map(p=>p.placeId);
+               const bD = devices.filter(d => d.placeId && bP.includes(d.placeId)).map(d=>d.deviceId);
+
+               return (
+                  <div key={b.buildingId} className="selection-card" onClick={() => setSelectedBuildingId(b.buildingId)}>
+                    {renderCardHealth(bD)}
+                    <div className="selection-actions">
+                      <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setActiveModal({ type: 'building', mode: 'edit', id: b.buildingId }); setNewName(b.name); }}><IconEdit /></button>
+                      <button className="btn-icon delete" onClick={(e) => { e.stopPropagation(); handleDelete('building', b.buildingId, b.name); }}><IconTrash /></button>
+                    </div>
+                    <div className="selection-icon"><IconBuilding /></div>
+                    <div className="selection-name">{b.name}</div>
+                    <div className="selection-meta">Places: {places.filter(p => p.buildingId === b.buildingId).length}</div>
+                  </div>
+              )
+           })}
            <div className="selection-card add" onClick={() => setActiveModal({ type: 'building', mode: 'add' })}>
               <div className="selection-icon">+</div>
               <div className="selection-name">Add Building / Location</div>
@@ -324,17 +353,22 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
       {/* 3. Place Selection */}
       {selectedBuildingId && !selectedPlaceId && (
         <div className="selection-grid">
-           {filteredPlaces.map(p => (
-              <div key={p.placeId} className="selection-card" onClick={() => setSelectedPlaceId(p.placeId)}>
-                <div className="selection-actions">
-                  <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setActiveModal({ type: 'place', mode: 'edit', id: p.placeId }); setNewName(p.name); }}><IconEdit /></button>
-                  <button className="btn-icon delete" onClick={(e) => { e.stopPropagation(); handleDelete('place', p.placeId, p.name); }}><IconTrash /></button>
-                </div>
-                <div className="selection-icon"><IconPlace /></div>
-                <div className="selection-name">{p.name}</div>
-                <div className="selection-meta">Devices: {devices.filter(d => d.placeId === p.placeId).length}</div>
-              </div>
-           ))}
+           {filteredPlaces.map(p => {
+               const pD = devices.filter(d => d.placeId === p.placeId).map(d=>d.deviceId);
+
+               return (
+                  <div key={p.placeId} className="selection-card" onClick={() => setSelectedPlaceId(p.placeId)}>
+                    {renderCardHealth(pD)}
+                    <div className="selection-actions">
+                      <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setActiveModal({ type: 'place', mode: 'edit', id: p.placeId }); setNewName(p.name); }}><IconEdit /></button>
+                      <button className="btn-icon delete" onClick={(e) => { e.stopPropagation(); handleDelete('place', p.placeId, p.name); }}><IconTrash /></button>
+                    </div>
+                    <div className="selection-icon"><IconPlace /></div>
+                    <div className="selection-name">{p.name}</div>
+                    <div className="selection-meta">Devices: {devices.filter(d => d.placeId === p.placeId).length}</div>
+                  </div>
+              )
+           })}
            <div className="selection-card add" onClick={() => setActiveModal({ type: 'place', mode: 'add' })}>
               <div className="selection-icon">+</div>
               <div className="selection-name">Add Room / Place</div>
