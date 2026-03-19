@@ -46,7 +46,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
 
   const [activeModal, setActiveModal] = useState<{ type: 'company' | 'building' | 'place' | 'sensor', mode: 'add' | 'edit', id?: string } | null>(null);
   const [newName, setNewName] = useState('');
-  const [sensorForm, setSensorForm] = useState({ url: 'http://localhost:8086', token: '', org: '', bucket: '' });
+  const [sensorForm, setSensorForm] = useState({ url: 'http://localhost:8086', token: '', org: 'belimo', bucket: '' });
   const [deviceSearch, setDeviceSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
@@ -124,7 +124,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
       }
       setActiveModal(null);
       setNewName('');
-      setSensorForm({ url: 'http://localhost:8086', token: '', org: '', bucket: '' });
+      setSensorForm({ url: 'http://localhost:8086', token: '', org: 'belimo', bucket: '' });
       setFormError('');
       await Promise.all([refreshHierarchy(), refreshDevices()]);
     } catch (err) {
@@ -377,7 +377,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
               </div>
               <button 
                 className="btn btn-primary btn-sm"
-                onClick={() => { setActiveModal({ type: 'sensor', mode: 'add' }); setNewName(''); setSensorForm({ url: 'http://localhost:8086', token: '', org: '', bucket: '' }); }}
+                onClick={() => { setActiveModal({ type: 'sensor', mode: 'add' }); setNewName(''); setSensorForm({ url: 'http://localhost:8086', token: '', org: 'belimo', bucket: '' }); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32 }}
               >
                 <IconPlus /> Add Sensor
@@ -394,7 +394,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
                 <button 
                   className="btn btn-primary" 
                   style={{ marginTop: 20 }}
-                  onClick={() => { setActiveModal({ type: 'sensor', mode: 'add' }); setNewName(''); setSensorForm({ url: 'http://localhost:8086', token: '', org: '', bucket: '' }); }}
+                  onClick={() => { setActiveModal({ type: 'sensor', mode: 'add' }); setNewName(''); setSensorForm({ url: 'http://localhost:8086', token: '', org: 'belimo', bucket: '' }); }}
                 >
                   <IconPlus /> Add First Sensor
                 </button>
@@ -447,11 +447,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
                       <label className="form-label">API Token *</label>
                       <input className="form-input" type="password" value={sensorForm.token} onChange={e => setSensorForm(f => ({...f, token: e.target.value}))} />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      <div className="form-group">
-                        <label className="form-label">Organization *</label>
-                        <input className="form-input" value={sensorForm.org} onChange={e => setSensorForm(f => ({...f, org: e.target.value}))} />
-                      </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                       <div className="form-group">
                         <label className="form-label">Bucket *</label>
                         <input className="form-input" value={sensorForm.bucket} onChange={e => setSensorForm(f => ({...f, bucket: e.target.value}))} />
