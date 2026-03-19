@@ -10,6 +10,7 @@ const IconTrash = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="no
 const IconEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IconX = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IconHome = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const IconSearch = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 
 interface EditState {
   roomId: string;
@@ -24,6 +25,12 @@ export default function RoomsPage() {
   const [form, setForm] = useState({ name: '', threshold: '0' });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [search, setSearch] = useState('');
+
+  const filteredRooms = rooms.filter(r =>
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.roomId.toLowerCase().includes(search.toLowerCase())
+  );
 
   const openCreate = () => {
     setEditState(null);
@@ -86,23 +93,37 @@ export default function RoomsPage() {
           <div className="page-title">Room Manager</div>
           <div className="page-subtitle">{rooms.length} room{rooms.length !== 1 ? 's' : ''} configured</div>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>
-          <IconPlus /> Add Room
-        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="search-bar">
+            <IconSearch />
+            <input
+              placeholder="Search rooms…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <button className="btn btn-primary" onClick={openCreate}>
+            <IconPlus /> Add Room
+          </button>
+        </div>
       </div>
 
-      {rooms.length === 0 ? (
+      {filteredRooms.length === 0 ? (
         <div className="empty-state">
           <IconHome />
-          <div className="empty-state-title">No rooms yet</div>
-          <div className="empty-state-desc">Create rooms to group sensors by location.</div>
-          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={openCreate}>
-            <IconPlus /> Create First Room
-          </button>
+          <div className="empty-state-title">{search ? 'No matching rooms' : 'No rooms yet'}</div>
+          <div className="empty-state-desc">
+            {search ? 'Try a different search term.' : 'Create rooms to group sensors by location.'}
+          </div>
+          {!search && (
+            <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={openCreate}>
+              <IconPlus /> Create First Room
+            </button>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-          {rooms.map(room => {
+          {filteredRooms.map(room => {
             const count = getDeviceCount(room.roomId);
             const devicesInRoom = devices.filter(d => d.roomId === room.roomId);
             return (
