@@ -106,6 +106,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   const navItems = [
     { id: 'dashboard' as Page, label: 'Portfolio', icon: <IconDashboard /> },
+    { id: 'companies' as Page, label: t.sidebar.companies || 'Companies', icon: <IconCompany /> },
     { id: 'notifications' as Page, label: t.sidebar.notifications, icon: <IconBell />, badge: unreadCount > 0 ? String(unreadCount) : undefined },
   ];
 
@@ -147,7 +148,14 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
           <button
             key={item.id}
             className={`sidebar-nav-item ${activePage === item.id ? 'active' : ''}`}
-            onClick={() => onNavigate(item.id)}
+            onClick={() => {
+              if (item.id === 'dashboard') {
+                setSelectedCompanyId(null);
+                setSelectedBuildingId(null);
+                setSelectedPlaceId(null);
+              }
+              onNavigate(item.id);
+            }}
           >
             {item.icon}
             <span style={{ flex: 1 }}>{item.label}</span>
@@ -155,16 +163,8 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
           </button>
         ))}
 
-        <div className="sidebar-section-label" style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Customers</span>
-          {(selectedCompanyId || selectedBuildingId || selectedPlaceId) && (
-            <button 
-              onClick={() => { setSelectedCompanyId(null); setSelectedBuildingId(null); setSelectedPlaceId(null); }}
-              style={{ background: 'none', border: 'none', color: 'var(--belimo-orange)', fontSize: 10, cursor: 'pointer', fontWeight: 600 }}
-            >
-              Reset
-            </button>
-          )}
+        <div className="sidebar-section-label" style={{ marginTop: 24, fontSize: 10, letterSpacing: '0.1em' }}>
+           EXPLORER
         </div>
         
         <div className="sidebar-hierarchy" style={{ padding: '0 8px', display: 'flex', flexDirection: 'column', gap: 1 }}>

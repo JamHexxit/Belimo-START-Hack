@@ -220,7 +220,7 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
           onClick={() => { setSelectedCompanyId(null); setSelectedBuildingId(null); setSelectedPlaceId(null); }}
           className={`breadcrumb-item ${!selectedCompanyId ? 'active' : ''}`}
         >
-          Customers
+          Portfolio
         </button>
         {selectedCompanyId && (
           <>

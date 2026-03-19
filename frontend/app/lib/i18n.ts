@@ -22,7 +22,18 @@ export const translations = {
       devices: 'Device Manager',
       rooms: 'Locations',
       notifications: 'Notifications',
-      monitor: 'Monitor'
+      monitor: 'Monitor',
+      companies: 'Companies'
+    },
+    companies: {
+      title: 'Company Management',
+      subtitle: 'Manage clients and their organizational hierarchy',
+      addCompany: 'Add Company',
+      editCompany: 'Edit Company',
+      deleteTitle: 'Delete Company',
+      deleteConfirm: 'Are you sure you want to delete this company? All associated buildings and places will be removed.',
+      noCompanies: 'No companies found',
+      searchPlaceholder: 'Search companies...'
     },
     dashboard: {
       globalStatus: 'Global System Status',
@@ -124,7 +135,18 @@ export const translations = {
       devices: 'Gerätemanager',
       rooms: 'Standorte',
       notifications: 'Benachrichtigungen',
-      monitor: 'Überwachen'
+      monitor: 'Überwachen',
+      companies: 'Unternehmen'
+    },
+    companies: {
+      title: 'Unternehmensverwaltung',
+      subtitle: 'Kunden und ihre Organisationshierarchie verwalten',
+      addCompany: 'Unternehmen hinzufügen',
+      editCompany: 'Unternehmen bearbeiten',
+      deleteTitle: 'Unternehmen löschen',
+      deleteConfirm: 'Sind Sie sicher, dass Sie dieses Unternehmen löschen möchten? Alle zugehörigen Gebäude und Räume werden ebenfalls entfernt.',
+      noCompanies: 'Keine Unternehmen gefunden',
+      searchPlaceholder: 'Unternehmen suchen...'
     },
     dashboard: {
       globalStatus: 'Globaler Systemstatus',
@@ -226,7 +248,18 @@ export const translations = {
       devices: 'Gestion des appareils',
       rooms: 'Salles',
       notifications: 'Notifications',
-      monitor: 'Surveiller'
+      monitor: 'Surveiller',
+      companies: 'Entreprises'
+    },
+    companies: {
+      title: 'Gestion des Entreprises',
+      subtitle: 'Gérer les clients et leur hiérarchie organisationnelle',
+      addCompany: 'Ajouter une entreprise',
+      editCompany: 'Modifier l\'entreprise',
+      deleteTitle: 'Supprimer l\'entreprise',
+      deleteConfirm: 'Êtes-vous sûr de vouloir supprimer cette entreprise ? Tous les bâtiments et salles associés seront supprimés.',
+      noCompanies: 'Aucune entreprise trouvée',
+      searchPlaceholder: 'Rechercher des entreprises...'
     },
     dashboard: {
       globalStatus: 'État global du système',

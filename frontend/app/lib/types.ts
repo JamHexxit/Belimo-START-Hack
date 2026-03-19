@@ -1,1 +1,1 @@
-export type Page = 'dashboard' | 'notifications';
+export type Page = 'dashboard' | 'companies' | 'notifications';
