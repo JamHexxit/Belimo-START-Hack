@@ -79,11 +79,11 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
         style={{ cursor: 'pointer' }}
       >
         <Image
-          src="/logo-1x.png"
+          src={theme === 'dark' ? '/logo-white-text.png' : '/logo-black-text.png'}
           alt="Belimo Logo"
           width={110}
           height={36}
-          style={{ objectFit: 'contain', filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }}
+          style={{ objectFit: 'contain' }}
           priority
         />
       </div>
