@@ -64,7 +64,7 @@
   --bg-secondary: #141720;
   --bg-card: #1a1e2a;
   --bg-card-hover: #1f2435;
-  --bg-sidebar: #0f1118;
+  --bg-sidebar: #000000;
   --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-item-hover: rgba(255, 255, 255, 0.06);
   --sidebar-item-active-bg: var(--belimo-orange-light);
