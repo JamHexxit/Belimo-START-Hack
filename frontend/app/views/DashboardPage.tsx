@@ -151,13 +151,18 @@ export default function DashboardPage({ onNavigate }: DashboardProps) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {notifications.slice(0, 5).map(n => (
-                <div key={n.id} style={{
-                  display: 'flex',
-                  gap: 10,
-                  padding: '10px 12px',
-                  background: 'var(--bg-primary)',
-                  opacity: n.read ? 0.55 : 1,
-                }}>
+                <div 
+                  key={n.id} 
+                  onClick={() => onNavigate('notifications')}
+                  style={{
+                    display: 'flex',
+                    gap: 10,
+                    padding: '10px 12px',
+                    background: 'var(--bg-primary)',
+                    opacity: n.read ? 0.55 : 1,
+                    cursor: 'pointer',
+                  }}
+                >
                   <span style={{
                     color: n.type === 'error' ? 'var(--status-error)' : n.type === 'warning' ? 'var(--status-warning)' : n.type === 'success' ? 'var(--status-online)' : '#60a5fa',
                     fontSize: 11,
