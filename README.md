@@ -106,4 +106,4 @@ This project is built for the START Hack 2026 and is intended for educational an
 
 ## 👥 Team
 
-- [Your Name/Team Name]
+- Array of Idiots
