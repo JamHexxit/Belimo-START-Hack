@@ -142,3 +142,14 @@ export async function getDeviceInfo(deviceId: string): Promise<DeviceInfo[]> {
   if (!res.ok) throw new Error('Failed to fetch device info');
   return res.json();
 }
+
+/**
+ * GET /api/devices/:deviceId/status
+ * checks if the device is online or offline
+ */
+export async function isDeviceOnline(deviceId: string): Promise<boolean>{
+  const res = await fetch(`${BASE_URL}/api/devices/${deviceId}/status`);
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.status === 'online';
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import DeviceCard from '../components/card';
 import { addDevice } from '../lib/api';
@@ -10,16 +10,16 @@ const IconSearch = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 const IconX = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IconEmpty = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>;
 
+
 export default function DeviceManagerPage() {
   const { devices, rooms, refreshDevices, addNotification } = useApp();
   const [search, setSearch] = useState(() => {
     if (typeof window !== 'undefined' && window.location.hash.startsWith('#search-')) {
-      const q = decodeURIComponent(window.location.hash.replace('#search-', ''));
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      return q;
+      return decodeURIComponent(window.location.hash.replace('#search-', ''));
     }
     return '';
   });
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState({ influxUrl: '', influxToken: '', org: '', bucket: '', roomId: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -85,7 +85,7 @@ export default function DeviceManagerPage() {
 
       {/* Device Grid */}
       {filtered.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', padding: '60px 40px', backdropFilter: 'blur(8px)', boxShadow: 'var(--shadow-card)' }}>
           <IconEmpty />
           <div className="empty-state-title">{search ? 'No matching devices' : 'No devices yet'}</div>
           <div className="empty-state-desc">

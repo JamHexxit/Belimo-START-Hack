@@ -148,7 +148,7 @@ app.delete('/api/rooms/:roomId', (req, res) => {
  * ==========================================
  */
 
-// 1. Add a new Device
+// Add a new Device
 app.post('/api/devices', (req, res) => {
     const { influxUrl, influxToken, org, bucket, roomId } = req.body;
 
@@ -178,7 +178,7 @@ app.post('/api/devices', (req, res) => {
     res.json({ message: 'Device added successfully', deviceId });
 });
 
-// 2. Assign/Change the Room of an existing Device
+// Assign/Change the Room of an existing Device
 app.patch('/api/devices/:deviceId', (req, res) => {
     const { deviceId } = req.params;
     const { roomId } = req.body;
@@ -198,7 +198,7 @@ app.patch('/api/devices/:deviceId', (req, res) => {
     res.json({ message: 'Device room updated successfully', deviceId, roomId });
 });
 
-// 3. Get all Devices
+// Get all Devices
 app.get('/api/devices', (req, res) => {
     const devices = [];
     for (const [deviceId, data] of deviceRegistry.entries()) {
@@ -213,7 +213,7 @@ app.get('/api/devices', (req, res) => {
     res.json(devices);
 });
 
-// 4. Query a specific device
+// Query a specific device
 app.get('/api/devices/:deviceId/getInformations', async (req, res) => {
     const { deviceId } = req.params;
     const fluxQuery = `
@@ -250,7 +250,34 @@ app.get('/api/devices/:deviceId/getInformations', async (req, res) => {
     }
 });
 
-// 5. Remove a device
+
+// Get Device status
+app.get('/api/devices/:deviceId/status', async (req, res) => {
+    const { deviceId } = req.params;
+    const device = deviceRegistry.get(deviceId);
+
+    if (!device) {
+        return res.status(404).json({ error: 'Device not found' });
+    }
+
+    const queryApi = device.client.getQueryApi(device.org);
+
+    const fluxQuery = `buckets() |> limit(n: 1)`;
+
+    try {
+        await queryApi.collectRows(fluxQuery);
+        res.json({ deviceId, status: 'online' });
+    } catch (error) {
+        console.error(`Device ${deviceId} is offline:`, error.message);
+        res.json({
+            deviceId,
+            status: 'offline',
+            error: error.message
+        });
+    }
+});
+
+// Remove a device
 app.delete('/api/devices/:deviceId', (req, res) => {
     const { deviceId } = req.params;
     if (deviceRegistry.has(deviceId)) {

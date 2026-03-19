@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Device, Room, DeviceInfo, getDeviceInfo, deleteDevice, updateDeviceRoom } from '../lib/api';
+import { useState, useEffect } from 'react';
+import { Device, Room, DeviceInfo, getDeviceInfo, deleteDevice, updateDeviceRoom, isDeviceOnline } from '../lib/api';
 import { useApp } from '../context/AppContext';
 
 // Icons
@@ -29,7 +29,37 @@ export default function DeviceCard({ device, rooms, onDeleted }: DeviceCardProps
   const [selectedRoom, setSelectedRoom] = useState(device.roomId || '');
   const [updatingRoom, setUpdatingRoom] = useState(false);
 
+  // New state for dynamic status
+  const [status, setStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+
   const room = rooms.find(r => r.roomId === device.roomId);
+
+  // ── Fetch device status on mount and interval
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkStatus = async () => {
+      try {
+        const isOnline = await isDeviceOnline(device.deviceId);
+        if (isMounted) {
+          setStatus(isOnline ? 'online' : 'offline');
+        }
+      } catch (err) {
+        if (isMounted) setStatus('offline');
+      }
+    };
+
+    // Check immediately
+    checkStatus();
+
+    // Poll status every 30 seconds
+    const interval = setInterval(checkStatus, 30000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [device.deviceId]);
 
   // ── Fetch last telemetry (GET /api/devices/:id/getInformations)
   const handleExpandToggle = async () => {
@@ -98,103 +128,107 @@ export default function DeviceCard({ device, rooms, onDeleted }: DeviceCardProps
     }
 
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8, marginTop: 10 }}>
-        {Array.from(fields.entries()).map(([field, data]) => (
-          <div key={field} className="device-metric">
-            <div className="device-metric-label">{field.replace(/_/g, ' ')}</div>
-            <div className="device-metric-value">
-              {typeof data.value === 'number' ? data.value.toFixed(2) : String(data.value)}
-            </div>
-            {data.time && (
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
-                {new Date(data.time).toLocaleTimeString()}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8, marginTop: 10 }}>
+          {Array.from(fields.entries()).map(([field, data]) => (
+              <div key={field} className="device-metric">
+                <div className="device-metric-label">{field.replace(/_/g, ' ')}</div>
+                <div className="device-metric-value">
+                  {typeof data.value === 'number' ? data.value.toFixed(2) : String(data.value)}
+                </div>
+                {data.time && (
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                      {new Date(data.time).toLocaleTimeString()}
+                    </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
     );
   };
 
+  // Determine the display string for the status badge
+  const statusText = status === 'checking' ? 'Checking...' : status === 'online' ? 'Online' : 'Offline';
+
   return (
-    <div className="device-card online">
-      {/* Header */}
-      <div className="device-header">
-        <div>
-          <div className="device-name">
-            <IconCPU />
-            Belimo Sensor
+      <div className={`device-card ${status === 'checking' ? 'offline' : status}`}>
+        {/* Header */}
+        <div className="device-header">
+          <div>
+            <div className="device-name">
+              <IconCPU />
+              Belimo Sensor
+            </div>
+            <div className="device-id">{shortId(device.deviceId)}</div>
           </div>
-          <div className="device-id">{shortId(device.deviceId)}</div>
-        </div>
-        <span className="device-status-badge online">
-          <IconWifi /> Online
+          <span className={`device-status-badge ${status === 'checking' ? 'offline' : status}`}>
+          {status !== 'checking' && <IconWifi />}
+            {statusText}
         </span>
-      </div>
-
-      {/* Info Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-        <div className="device-metric">
-          <div className="device-metric-label">Org</div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{device.org}</div>
         </div>
-        <div className="device-metric">
-          <div className="device-metric-label">Bucket</div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{device.bucket}</div>
-        </div>
-      </div>
 
-      {/* Room Assignment — PATCH /api/devices/:id */}
-      <div style={{ marginBottom: 12 }}>
-        <label className="form-label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-          Assign Room
-          {updatingRoom && <span className="loading-spinner" style={{ width: 10, height: 10 }} />}
-        </label>
-        <select
-          className="form-select"
-          style={{ fontSize: 12, padding: '6px 10px' }}
-          value={selectedRoom}
-          onChange={handleRoomChange}
-          onClick={e => e.stopPropagation()}
-          disabled={updatingRoom}
-        >
-          <option value="">— Unassigned —</option>
-          {rooms.map(r => (
-            <option key={r.roomId} value={r.roomId}>{r.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Footer */}
-      <div className="device-footer">
-        <div className="device-room-tag">
-          <IconHome />
-          {room ? room.name : 'Unassigned'}
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {/* GET /api/devices/:id/getInformations */}
-          <button className="btn-icon" title="View live telemetry" onClick={handleExpandToggle}>
-            {loadingData ? <span className="loading-spinner" /> : expanded ? <><IconData /> <IconChevron up={true} /></> : <><IconData /> <IconChevron up={false} /></>}
-          </button>
-          {/* DELETE /api/devices/:id */}
-          <button className="btn-icon danger" title="Remove device" onClick={handleDelete} disabled={deleting}>
-            {deleting ? <span className="loading-spinner" /> : <IconTrash />}
-          </button>
-        </div>
-      </div>
-
-      {/* Expanded Telemetry */}
-      {expanded && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
-          <div className="section-title" style={{ fontSize: 10, marginBottom: 6 }}>
-            Live Telemetry · last 10 min
+        {/* Info Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+          <div className="device-metric">
+            <div className="device-metric-label">Org</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{device.org}</div>
           </div>
-          {renderTelemetry()}
-          <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-            <span style={{ fontWeight: 600 }}>URL:</span> {device.url}
+          <div className="device-metric">
+            <div className="device-metric-label">Bucket</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{device.bucket}</div>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Room Assignment — PATCH /api/devices/:id */}
+        <div style={{ marginBottom: 12 }}>
+          <label className="form-label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            Assign Room
+            {updatingRoom && <span className="loading-spinner" style={{ width: 10, height: 10 }} />}
+          </label>
+          <select
+              className="form-select"
+              style={{ fontSize: 12, padding: '6px 10px' }}
+              value={selectedRoom}
+              onChange={handleRoomChange}
+              onClick={e => e.stopPropagation()}
+              disabled={updatingRoom}
+          >
+            <option value="">— Unassigned —</option>
+            {rooms.map(r => (
+                <option key={r.roomId} value={r.roomId}>{r.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Footer */}
+        <div className="device-footer">
+          <div className="device-room-tag">
+            <IconHome />
+            {room ? room.name : 'Unassigned'}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {/* GET /api/devices/:id/getInformations */}
+            <button className="btn-icon" title="View live telemetry" onClick={handleExpandToggle}>
+              {loadingData ? <span className="loading-spinner" /> : expanded ? <><IconData /> <IconChevron up={true} /></> : <><IconData /> <IconChevron up={false} /></>}
+            </button>
+            {/* DELETE /api/devices/:id */}
+            <button className="btn-icon danger" title="Remove device" onClick={handleDelete} disabled={deleting}>
+              {deleting ? <span className="loading-spinner" /> : <IconTrash />}
+            </button>
+          </div>
+        </div>
+
+        {/* Expanded Telemetry */}
+        {expanded && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
+              <div className="section-title" style={{ fontSize: 10, marginBottom: 6 }}>
+                Live Telemetry · last 10 min
+              </div>
+              {renderTelemetry()}
+              <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                <span style={{ fontWeight: 600 }}>URL:</span> {device.url}
+              </div>
+            </div>
+        )}
+      </div>
   );
 }
