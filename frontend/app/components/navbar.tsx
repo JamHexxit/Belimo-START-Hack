@@ -63,8 +63,9 @@ export default function Navbar({ activePage }: NavbarProps) {
 
   const info = {
     dashboard: { title: t.nav.dashboardTitle, subtitle: t.nav.dashboardSubtitle },
+    statistics: { title: 'Global Portfolio', subtitle: 'Aggregate metrics across all customers' },
     notifications: { title: t.nav.notificationsTitle, subtitle: t.nav.notificationsSubtitle },
-  }[activePage as 'dashboard' | 'notifications'];
+  }[activePage as 'dashboard' | 'statistics' | 'notifications'];
 
   const total = devices.length;
   const statusClass = total === 0 ? '' : 'online';
@@ -97,11 +98,6 @@ export default function Navbar({ activePage }: NavbarProps) {
       </div>
 
       <div className="navbar-right">
-        {/* Global Status */}
-        <div className={`global-status-dot ${statusClass}`}>
-          <span className="status-pulse" />
-          {statusLabel}
-        </div>
 
         {/* Language Switcher */}
         <div ref={langRef} style={{ position: 'relative' }}>

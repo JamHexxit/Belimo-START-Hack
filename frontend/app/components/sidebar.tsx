@@ -35,6 +35,11 @@ const IconRooms = () => (
     <polyline points="9 22 9 12 15 12 15 22" />
   </svg>
 );
+const IconActivity = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
 const IconBell = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -106,6 +111,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   const navItems = [
     { id: 'dashboard' as Page, label: t.sidebar.dashboard, icon: <IconDashboard /> },
+    { id: 'statistics' as Page, label: 'Portfolio', icon: <IconActivity /> },
     { id: 'notifications' as Page, label: t.sidebar.notifications, icon: <IconBell />, badge: unreadCount > 0 ? String(unreadCount) : undefined },
   ];
 
