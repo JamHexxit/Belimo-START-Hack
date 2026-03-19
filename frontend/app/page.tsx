@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Sidebar from './components/sidebar';
 import Navbar from './components/navbar';
 import ToastContainer from './components/notification';
+import ParticleBackground from './components/particle_background';
 import DashboardPage from './views/DashboardPage';
 import DeviceManagerPage from './views/DeviceManagerPage';
 import RoomsPage from './views/RoomsPage';
@@ -26,6 +27,9 @@ function AppShell() {
 
   return (
     <div className="app-layout">
+      {/* Particle Background */}
+      <ParticleBackground />
+
       {/* Sidebar */}
       <Sidebar activePage={activePage} onNavigate={setActivePage} />
 
