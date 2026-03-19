@@ -107,7 +107,3 @@ This project is built for the START Hack 2026 and is intended for educational an
 ## 👥 Team
 
 - [Your Name/Team Name]
-
-## 📞 Support
-
-For issues or questions, please open an issue in the repository.
