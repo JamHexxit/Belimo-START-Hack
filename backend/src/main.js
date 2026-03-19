@@ -450,7 +450,8 @@ function generateSimulatedReading(device) {
         if (isMoving) {
             state.feedback += diff > 0 ? 4 : -4; // Moves slightly slower
             reading['rotation_direction'] = diff > 0 ? 1 : 2;
-            reading['motor_torque_Nmm'] = 185 + (Math.random() * 5); // 20%+ higher than 150 baseline (triggers WARNING)
+            // 20%+ higher than 150 baseline (triggers WARNING, ~185)
+            reading['motor_torque_Nmm'] = 185 + (Math.random() * 5); 
         }
     }
     else if (device.mockSimulationState.scenario === 'jammed') {
@@ -459,7 +460,8 @@ function generateSimulatedReading(device) {
             if (diff > 0 && state.feedback >= 30) {
                 // Jammed while opening
                 reading['rotation_direction'] = 0; // Stuck
-                reading['motor_torque_Nmm'] = 240 + (Math.random() * 20); // 50%+ higher than 150 (triggers ERROR)
+                // 50%+ higher than 150 (triggers ERROR, >225)
+                reading['motor_torque_Nmm'] = 240 + (Math.random() * 20); 
             } else if (diff < 0 && state.feedback <= 30) {
                  // Jammed while closing
                 reading['rotation_direction'] = 0; // Stuck
@@ -513,6 +515,7 @@ function analyzeDeviceHealth(deviceId, reading) {
     const isCommandedToMove = positionDifference > 5;
     
     // Check if the device is stuck
+    // We only check if it should be moving AND if it's currently instructed to move
     if (isCommandedToMove) {
         if (device.lastPosition !== null && Math.abs(device.lastPosition - feedback) < 0.5) {
              // Position has not changed significantly since last reading
@@ -529,39 +532,37 @@ function analyzeDeviceHealth(deviceId, reading) {
     
     if (isCommandedToMove) {
         // 1. Critical Failure Check: Actuator commanded to move but isn't
-        // If it's been stagnant for multiple readings, or torque is way too high
         
-        // If the position hasn't changed for 3 consecutive readings while it should be moving
-        if (device.positionStagnantCount >= 3) {
+        // If the position hasn't changed for 5 consecutive readings while it should be moving
+        if (device.positionStagnantCount >= 5) {
             return {
                 status: 'error',
                 message: `CRITICAL: Actuator jam detected! Target is ${setpoint}%, but position is stuck at ${feedback}%. Immediate maintenance required.`
             };
         }
         
-        if (currentTorque > baselineTorque * 1.5) {
-            // Torque is 50% higher than baseline - likely jammed
-            return {
-                status: 'error',
-                message: `CRITICAL: Actuator jam detected! High torque (${currentTorque.toFixed(1)} Nmm) but unable to reach target position.`
-            };
-        } else if ((rotationDir === 1 || rotationDir === 2) && currentTorque > baselineTorque) {
-            // Supposed to move, torque applied, but not rotating
-            return {
-                status: 'error',
-                message: `CRITICAL: Actuator failure. Commanded to move (Setpoint: ${setpoint}%, Feedback: ${feedback}%) but rotation is 0 despite applied torque.`
-            };
-        }
+        // Only trigger high torque jam if torque is EXTREMELY high (e.g. 50% above baseline) AND rotation is 0
+        // (Removed rotationDir === 0 requirement since the sensor might report 1/2 while completely jammed)
+        // Also removed the immediate rotation = 0 check unless it's been stagnant.
     }
 
-    // 2. Predictive Maintenance Warning: Torque is higher than normal
-    // If torque is consistently higher than baseline, it might be mineral buildup.
-    if (currentTorque > baselineTorque * 1.2) {
-         // Torque is 20% higher than baseline
-         return {
-             status: 'warning',
-             message: `WARNING: Elevated torque detected (${currentTorque.toFixed(1)} Nmm vs baseline ${baselineTorque} Nmm). Possible mineral buildup (calcification). Check within 3 months.`
-         };
+    // 2. Predictive Maintenance Warning & Critical Torque:
+    // Only check for calcification/extreme torque if it is actually moving or trying to move.
+    if (isCommandedToMove) {
+        // Extreme torque (e.g., 50% higher than baseline)
+        if (currentTorque > baselineTorque * 1.5) {
+            return {
+                status: 'error',
+                message: `CRITICAL: Dangerously high torque detected (${currentTorque.toFixed(1)} Nmm vs baseline ${baselineTorque} Nmm). Motor damage imminent.`
+            };
+        } 
+        // Elevated torque (e.g., 20% higher than baseline)
+        else if (currentTorque > baselineTorque * 1.2) {
+             return {
+                 status: 'warning',
+                 message: `WARNING: Elevated torque detected (${currentTorque.toFixed(1)} Nmm vs baseline ${baselineTorque} Nmm). Possible mineral buildup (calcification). Check within 3 months.`
+             };
+        }
     }
 
     return { status: 'healthy', message: 'Operating normally.' };
