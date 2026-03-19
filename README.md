@@ -1,109 +1,150 @@
-# Belimo START Hack 2026 — Sensor Monitor
+# Belimo START Hack 2026
 
-![Belimo Logo](public/logo-1x.png)
+Belimo START Hack 2026 is a monitoring and demo platform for Belimo actuator data. The project combines a Next.js frontend with an Express backend to register devices, organize them into rooms, inspect system status, and detect actuator health issues from live or simulated sensor data.
 
-**Sensor Monitor** is a real-time monitoring dashboard for Belimo sensors, built for the START Hack 2026. It provides a seamless user experience with a modern, responsive interface, instant notifications, and intuitive device management.
+## What the project can do
 
-## 🚀 Features
+- Show a dashboard with device count, online status, room overview, and recent alerts
+- Register Belimo devices via InfluxDB connection details
+- Edit and remove registered devices
+- Create rooms and assign devices to them
+- Define a room threshold that is used as the baseline for health analysis
+- Check whether a device is reachable
+- Read the latest actuator values from the backend
+- Detect warning and error states such as elevated torque or jammed actuators
+- Run fully offline with simulated actuator scenarios for demos
+- Switch the UI language between English, German, and French
+- Toggle between light and dark mode
 
-- **Real-time Dashboard** — Live sensor data with dynamic charts and status indicators
-- **Device Management** — Add, edit, and remove sensors with instant updates
-- **Room Organization** — Assign sensors to rooms for better spatial awareness
-- **Smart Notifications** — Instant alerts for sensor events and system updates
-- **Dark/Light Mode** — Automatic theme switching with smooth transitions
-- **Responsive Design** — Beautiful UI across desktop and mobile devices
+## Project structure
 
-## 🛠️ Tech Stack
-
-- **Frontend**: Next.js 16, React 19, TypeScript
-- **Styling**: Tailwind CSS v4, CSS Custom Properties
-- **Backend**: Node.js, Express, SQLite3
-- **Architecture**: Clean Architecture with Domain-Driven Design principles
-
-## 📂 Project Structure
-
-```
+```text
 Belimo-START-Hack/
-├── backend/                  # Node.js API server
-│   ├── src/
-│   │   ├── domain/           # Business logic & entities
-│   │   ├── application/      # Use cases & application layer
-│   │   ├── infrastructure/   # Database & external integrations
-│   │   └── presentation/     # Controllers & API endpoints
-│   ├── package.json
-│   └── ...
-└── frontend/                 # Next.js web application
-    ├── app/
-    │   ├── components/       # Reusable UI components
-    │   ├── context/          # Global state management
-    │   ├── lib/              # API clients & utilities
-    │   ├── views/            # Page components
-    │   └── ...
-    ├── public/
-    ├── package.json
-    └── ...
+|-- backend/
+|   |-- src/
+|   |   |-- main.js            # Express API and health analysis
+|   |   `-- collectData.js     # Helper script for recording sample data
+|   |-- config/                # Created at runtime for devices and rooms
+|   `-- collected_sensor_data.json
+|-- frontend/
+|   |-- app/
+|   |   |-- components/        # Navbar, sidebar, cards, notifications
+|   |   |-- context/           # Global app state
+|   |   |-- lib/               # API client and translations
+|   |   `-- views/             # Dashboard, devices, rooms, notifications
+|   `-- public/
+|-- README.md
+`-- .gitignore
 ```
 
-## 🚀 Getting Started
+## Tech stack
 
-### Prerequisites
+- Frontend: Next.js 16, React 19, TypeScript
+- Backend: Node.js, Express
+- Data source: InfluxDB
+- Styling: CSS with global theme variables
 
-- Node.js 18+
-- npm or yarn
+## How it works
 
-### 1. Backend Setup
+The frontend talks to the backend over HTTP. Devices are stored by the backend in JSON config files and queried through InfluxDB. For demo use, the backend can also start in offline mode and generate simulated actuator behavior:
+
+- healthy actuator
+- calcified actuator with elevated torque
+- jammed actuator with critical failure behavior
+
+The backend evaluates incoming readings and classifies device health as:
+
+- `healthy`
+- `warning`
+- `error`
+- `unknown`
+
+## Local setup
+
+### Requirements
+
+- Node.js 18 or newer
+- npm
+
+### 1. Start the backend
 
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Install dependencies
 npm install
-
-# Start the server
 npm start
 ```
 
-The backend will start on `http://localhost:3000`.
+The backend runs on `http://localhost:4000`.
 
-### 2. Frontend Setup
+### 2. Start the frontend
 
 ```bash
-# Navigate to frontend directory
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`.
+The frontend runs on `http://localhost:3000`.
 
-## 🎨 Design System
+### 3. Connect frontend and backend
 
-The application uses a modern design system with:
+By default, the frontend expects the backend at `http://localhost:4000`.
 
-- **Primary Color**: Belimo Orange (`#E8470A`)
-- **Typography**: Inter font family
-- **Layout**: Sidebar navigation with main content area
-- **Themes**: Light and dark mode with smooth transitions
-- **Components**: Reusable cards, buttons, modals, and charts
+If needed, set:
 
-## 🤝 Contributing
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
 
-Contributions are welcome! This project follows clean architecture principles with:
+## Offline demo mode
 
-1. **Domain Layer** — Core business logic and entities
-2. **Application Layer** — Use cases and application-specific logic
-3. **Infrastructure Layer** — Database, APIs, and external integrations
-4. **Presentation Layer** — Controllers and API endpoints
+For hackathon demos or testing without live hardware, start the backend in offline mode:
 
-## 📝 License
+```bash
+cd backend
+npm run start:offline
+```
 
-This project is built for the START Hack 2026 and is intended for educational and demonstration purposes.
+In offline mode the backend will:
 
-## 👥 Team
+- load `backend/collected_sensor_data.json` if available
+- otherwise generate simulated readings internally
+- create demo devices automatically if no device config exists
 
-- Array of Idiots
+## Backend API overview
+
+### Rooms
+
+- `POST /api/rooms` creates a room or updates one when `roomId` is provided
+- `GET /api/rooms` returns all rooms
+- `DELETE /api/rooms/:roomId` deletes a room and unassigns affected devices
+
+### Devices
+
+- `POST /api/devices` registers a device
+- `PATCH /api/devices/:deviceId` updates room assignment or connection details
+- `GET /api/devices` returns all devices
+- `GET /api/devices/:deviceId/getInformations` returns latest readings plus health analysis
+- `GET /api/devices/:deviceId/status` checks whether the device is online
+- `DELETE /api/devices/:deviceId` removes a device
+
+## Recorded data helper
+
+The backend contains a helper script to collect actuator data and save it to `backend/collected_sensor_data.json`:
+
+```bash
+cd backend
+npm run collect
+```
+
+This is useful for building or refreshing offline demo data.
+
+## Notes
+
+- Backend config files are created automatically in `backend/config/`
+- Notifications are currently managed in frontend state and are not persisted
+- The UI is implemented as a single-page app inside the Next.js app router
+
+## Team
+
+Array of Idiots
