@@ -15,6 +15,8 @@ app.use(cors());
 const CONFIG_DIR = path.join(__dirname, '../config');
 const DEVICES_FILE = path.join(CONFIG_DIR, 'devices.json');
 const ROOMS_FILE = path.join(CONFIG_DIR, 'rooms.json');
+const MOCK_DATA_FILE = path.join(__dirname, '../../collected_sensor_data.json'); // Adjusted to point to root if needed, or local
+const OFFLINE_MODE = process.env.OFFLINE_MODE === 'true';
 
 // Ensure the config directory exists before trying to read/write
 if (!fs.existsSync(CONFIG_DIR)) {
@@ -26,6 +28,25 @@ if (!fs.existsSync(CONFIG_DIR)) {
 const deviceRegistry = new Map();
 // Room Structure: Map<roomId, { name, threshold, ...otherConfig }>
 const roomRegistry = new Map();
+
+let mockSensorData = [];
+if (OFFLINE_MODE) {
+    console.log("Starting in OFFLINE MODE. Attempting to load mock data...");
+    const possiblePaths = [
+        path.join(__dirname, '../collected_sensor_data.json'),
+        path.join(__dirname, '../../collected_sensor_data.json')
+    ];
+    let loaded = false;
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            mockSensorData = JSON.parse(fs.readFileSync(p, 'utf8'));
+            console.log(`Loaded ${mockSensorData.length} mock data points from ${p}`);
+            loaded = true;
+            break;
+        }
+    }
+    if (!loaded) console.log("Warning: No collected_sensor_data.json found.");
+}
 
 /**
  * --- ROOM HELPERS ---
@@ -64,6 +85,17 @@ function loadDevices() {
             });
             console.log(`Loaded device ${deviceId} mapping to ${config.influxUrl}`);
         }
+    } else if (OFFLINE_MODE) {
+        // Create a dummy device if offline and no config exists
+        deviceRegistry.set('dummy-device-123', {
+            influxUrl: 'http://localhost:8086',
+            influxToken: 'dummy',
+            org: 'dummy',
+            bucket: 'dummy',
+            roomId: null,
+            client: null
+        });
+        console.log('Added dummy device for OFFLINE_MODE');
     }
 }
 
@@ -224,19 +256,42 @@ app.get('/api/devices', (req, res) => {
     res.json(devices);
 });
 
+// Mock counter to rotate through mock data
+let mockDataIndex = 0;
+
 // Query a specific device
 app.get('/api/devices/:deviceId/getInformations', async (req, res) => {
     const { deviceId } = req.params;
-    const fluxQuery = `
-      from(bucket: "actuator-data")
-        |> range(start: -10m)
-        |> last()
-    `;
 
     const device = deviceRegistry.get(deviceId);
     if (!device) {
         return res.status(404).json({ error: 'Device not found' });
     }
+
+    if (OFFLINE_MODE && mockSensorData.length > 0) {
+        // Return a mock reading from our collected file, rotating through the array
+        const reading = mockSensorData[mockDataIndex];
+        mockDataIndex = (mockDataIndex + 1) % mockSensorData.length;
+        
+        // Transform the object structure slightly to match what Influx would return
+        const results = Object.keys(reading)
+            .filter(key => key !== 'local_timestamp' && key !== 'device_time')
+            .map(key => ({
+                _time: new Date().toISOString(), // Use current time so frontend charts advance
+                _field: key,
+                _value: reading[key]
+            }));
+
+        return res.json(results);
+    } else if (OFFLINE_MODE) {
+         return res.status(503).json({ error: 'Offline mode active but no mock data available' });
+    }
+
+    const fluxQuery = `
+      from(bucket: "actuator-data")
+        |> range(start: -10m)
+        |> last()
+    `;
 
     const queryApi = device.client.getQueryApi(device.org);
     const results = [];
@@ -269,6 +324,10 @@ app.get('/api/devices/:deviceId/status', async (req, res) => {
 
     if (!device) {
         return res.status(404).json({ error: 'Device not found' });
+    }
+
+    if (OFFLINE_MODE) {
+        return res.json({ deviceId, status: 'online' });
     }
 
     const queryApi = device.client.getQueryApi(device.org);

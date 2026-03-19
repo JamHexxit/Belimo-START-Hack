@@ -1,15 +1,16 @@
 {
-  "name": "backend",
+  "name": "belimo-hack-backend",
   "version": "1.0.0",
+  "description": "",
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:offline": "set OFFLINE_MODE=true&& node src/main.js",
+    "collect": "node src/collectData.js"
   },
   "dependencies": {
-    "@influxdata/influxdb-client": "^1.35.0",
-    "cors": "^2.8.6",
-    "datetime": "^0.0.3",
-    "express": "^5.2.1"
+    "@influxdata/influxdb-client": "^1.33.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   }
 }
