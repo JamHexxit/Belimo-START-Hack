@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Device, Room, DeviceInfo, getDeviceInfo, deleteDevice, updateDeviceRoom, isDeviceOnline } from '../lib/api';
+import { Device, Room, DeviceInfo, getDeviceInfo, deleteDevice, updateDevice, isDeviceOnline } from '../lib/api';
 import { useApp } from '../context/AppContext';
 
 // Icons
+const IconEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IconCPU = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>;
 const IconTrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M9 6V4h6v2"/></svg>;
 const IconData = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
@@ -18,9 +19,10 @@ interface DeviceCardProps {
   device: Device;
   rooms: Room[];
   onDeleted: () => void;
+  onEdit?: (device: Device) => void;
 }
 
-export default function DeviceCard({ device, rooms, onDeleted }: DeviceCardProps) {
+export default function DeviceCard({ device, rooms, onDeleted, onEdit }: DeviceCardProps) {
   const { addNotification, refreshDevices } = useApp();
   const [expanded, setExpanded] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo[] | null>(null);
@@ -99,7 +101,7 @@ export default function DeviceCard({ device, rooms, onDeleted }: DeviceCardProps
     setSelectedRoom(newRoom);
     setUpdatingRoom(true);
     try {
-      await updateDeviceRoom(device.deviceId, newRoom || null);
+      await updateDevice(device.deviceId, { roomId: newRoom || null });
       const roomName = newRoom ? rooms.find(r => r.roomId === newRoom)?.name ?? newRoom : 'No Room';
       addNotification('success', 'Room Updated', `Device assigned to ${roomName}`);
       await refreshDevices();
@@ -206,6 +208,11 @@ export default function DeviceCard({ device, rooms, onDeleted }: DeviceCardProps
             {room ? room.name : 'Unassigned'}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
+            {onEdit && (
+              <button className="btn-icon" title="Edit Connection" onClick={() => onEdit(device)}>
+                <IconEdit />
+              </button>
+            )}
             {/* GET /api/devices/:id/getInformations */}
             <button className="btn-icon" title="View live telemetry" onClick={handleExpandToggle}>
               {loadingData ? <span className="loading-spinner" /> : expanded ? <><IconData /> <IconChevron up={true} /></> : <><IconData /> <IconChevron up={false} /></>}

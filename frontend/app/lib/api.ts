@@ -110,17 +110,23 @@ export async function addDevice(data: {
   return res.json();
 }
 
-/** PATCH /api/devices/:deviceId — change room assignment (null to unassign) */
-export async function updateDeviceRoom(
+/** PATCH /api/devices/:deviceId — change room assignment or connection */
+export async function updateDevice(
   deviceId: string,
-  roomId: string | null,
+  data: {
+    roomId?: string | null;
+    influxUrl?: string;
+    influxToken?: string;
+    org?: string;
+    bucket?: string;
+  }
 ): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/devices/${deviceId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId }),
+    body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update device room');
+  if (!res.ok) throw new Error('Failed to update device');
 }
 
 /** DELETE /api/devices/:deviceId */

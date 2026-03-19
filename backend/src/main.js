@@ -178,24 +178,35 @@ app.post('/api/devices', (req, res) => {
     res.json({ message: 'Device added successfully', deviceId });
 });
 
-// Assign/Change the Room of an existing Device
+// Assign/Change the Room or connection details of an existing Device
 app.patch('/api/devices/:deviceId', (req, res) => {
     const { deviceId } = req.params;
-    const { roomId } = req.body;
+    const { roomId, influxUrl, influxToken, org, bucket } = req.body;
 
     const device = deviceRegistry.get(deviceId);
     if (!device) {
         return res.status(404).json({ error: 'Device not found' });
     }
 
-    if (roomId && !roomRegistry.has(roomId)) {
-        return res.status(400).json({ error: 'Provided roomId does not exist' });
+    if (roomId !== undefined) {
+        if (roomId && !roomRegistry.has(roomId)) {
+            return res.status(400).json({ error: 'Provided roomId does not exist' });
+        }
+        device.roomId = roomId || null;
     }
 
-    device.roomId = roomId || null; // Allows un-assigning if null is passed
-    saveDevices();
+    let rebuildClient = false;
+    if (influxUrl !== undefined) { device.influxUrl = influxUrl; rebuildClient = true; }
+    if (influxToken !== undefined && influxToken.trim() !== '') { device.influxToken = influxToken; rebuildClient = true; }
+    if (org !== undefined) { device.org = org; }
+    if (bucket !== undefined) { device.bucket = bucket; }
 
-    res.json({ message: 'Device room updated successfully', deviceId, roomId });
+    if (rebuildClient) {
+        device.client = new InfluxDB({ url: device.influxUrl, token: device.influxToken });
+    }
+
+    saveDevices();
+    res.json({ message: 'Device updated successfully', deviceId, roomId: device.roomId });
 });
 
 // Get all Devices
